@@ -125,6 +125,11 @@ enum TorrentExportFolder
     Finished
 };
 
+namespace Net
+{
+    class DownloadHandler;
+}
+
 namespace BitTorrent
 {
     class InfoHash;
@@ -321,9 +326,7 @@ namespace BitTorrent
         void generateResumeData(bool final = false);
         void handleIPFilterParsed(int ruleCount);
         void handleIPFilterError();
-        void handleDownloadFinished(const QString &url, const QString &filePath);
-        void handleDownloadFailed(const QString &url, const QString &reason);
-        void handleRedirectedToMagnet(const QString &url, const QString &magnetUri);
+        void handleDownloadFinished(Net::DownloadHandler *downloadHandler);
         void switchToAlternativeMode(bool alternative);
 
         // Session reconfiguration triggers

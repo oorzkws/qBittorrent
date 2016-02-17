@@ -69,6 +69,11 @@ namespace Ui
     class MainWindow;
 }
 
+namespace Net
+{
+    class DownloadHandler;
+}
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -129,9 +134,9 @@ private slots:
     void updateRSSTabLabel(int count);
 
 #ifdef Q_OS_WIN
-    void pythonDownloadSuccess(const QString &url, const QString &filePath);
-    void pythonDownloadFailure(const QString &url, const QString &error);
+    void pythonDownloadFinished(Net::DownloadHandler *downloadHandler);
 #endif
+
     void addToolbarContextMenu();
     void manageCookies();
 
