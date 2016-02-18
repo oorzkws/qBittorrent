@@ -65,6 +65,8 @@ namespace Net
         QByteArray data() const;
         QString filePath() const;
 
+        void waitForFinished() const;
+
     signals:
         void downloadFinished(Net::DownloadHandler *downloadHandler);
 

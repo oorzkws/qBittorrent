@@ -27,6 +27,7 @@
  * exception statement from your version.
  */
 
+#include "QCoreApplication"
 #include <QTemporaryFile>
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
@@ -277,6 +278,12 @@ void DownloadHandler::handleRedirection(QUrl newUrl)
 QString DownloadHandler::filePath() const
 {
     return m_filePath;
+}
+
+void DownloadHandler::waitForFinished() const
+{
+    while (!m_finished)
+        QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
 }
 
 QByteArray DownloadHandler::data() const
