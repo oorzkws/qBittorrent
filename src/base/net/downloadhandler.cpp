@@ -35,6 +35,7 @@
 #include <QNetworkProxy>
 #include <QNetworkCookie>
 #include <QUrl>
+#include <QMetaObject>
 #include <QDebug>
 
 #include "base/utils/fs.h"
@@ -110,23 +111,20 @@ namespace
 
 using namespace Net;
 
-DownloadHandler::DownloadHandler(QNetworkReply *reply, DownloadManager *manager, bool saveToFile, qint64 limit)
-    : QObject(manager)
-    , m_reply(reply)
+DownloadHandler::DownloadHandler(DownloadManager *manager, bool saveToFile, qint64 limit)
+    : m_reply(nullptr)
     , m_manager(manager)
     , m_saveToFile(saveToFile)
     , m_sizeLimit(limit)
-    , m_url(reply->url().toString())
     , m_error(NoError)
     , m_finished(false)
 {
-    init();
 }
 
 DownloadHandler::~DownloadHandler()
 {
     if (m_reply)
-        delete m_reply;
+        m_reply->deleteLater();
 }
 
 bool DownloadHandler::isFinished() const
@@ -212,9 +210,17 @@ void DownloadHandler::checkDownloadSize(qint64 bytesReceived, qint64 bytesTotal)
     emit downloadFinished(this);
 }
 
-void DownloadHandler::init()
+void DownloadHandler::assign(QNetworkReply *reply)
 {
-    m_reply->setParent(this);
+    if (m_reply) {
+        m_reply->disconnect(this);
+        m_reply->deleteLater();
+    }
+
+    m_reply = reply;
+
+    if (m_url.isEmpty()) // assign url only once
+        m_url = m_reply->url().toString();
     if (m_sizeLimit > 0)
         connect(m_reply, SIGNAL(downloadProgress(qint64, qint64)), this, SLOT(checkDownloadSize(qint64, qint64)));
     connect(m_reply, SIGNAL(finished()), this, SLOT(processFinishedDownload()));
@@ -264,15 +270,14 @@ void DownloadHandler::handleRedirection(QUrl newUrl)
         m_error = RedirectedToMagnet;
         m_finished = true;
         emit downloadFinished(this);
+        return;
     }
-    else {
-        DownloadHandler *tmp = m_manager->downloadUrl(newUrlString, m_saveToFile, m_sizeLimit);
-        m_reply->deleteLater();
-        m_reply = tmp->m_reply;
-        init();
-        tmp->m_reply = 0;
-        delete tmp;
-    }
+
+    QMetaObject::invokeMethod(
+                m_manager, "beginDownload",
+                Q_ARG(DownloadHandler*, this),
+                Q_ARG(QString, newUrlString),
+                Q_ARG(QString, QString::fromUtf8(m_reply->request().rawHeader("User-Agent"))));
 }
 
 QString DownloadHandler::filePath() const

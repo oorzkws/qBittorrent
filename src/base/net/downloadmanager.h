@@ -31,6 +31,7 @@
 #define NET_DOWNLOADMANAGER_H
 
 #include <QObject>
+#include <QMutex>
 #include <QNetworkAccessManager>
 
 class QNetworkReply;
@@ -67,9 +68,11 @@ namespace Net
         explicit DownloadManager(QObject *parent = 0);
 
         void applyProxySettings();
+        Q_INVOKABLE void beginDownload(DownloadHandler *handler, const QString &url, const QString &userAgent);
 
         static DownloadManager *m_instance;
         QNetworkAccessManager m_networkManager;
+        mutable QMutex m_mutex;
     };
 }
 

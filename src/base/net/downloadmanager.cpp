@@ -28,6 +28,8 @@
  */
 
 #include <QDateTime>
+#include <QMutexLocker>
+#include <QMetaObject>
 #include <QNetworkRequest>
 #include <QNetworkProxy>
 #include <QNetworkCookieJar>
@@ -131,6 +133,9 @@ DownloadManager *DownloadManager::m_instance = 0;
 DownloadManager::DownloadManager(QObject *parent)
     : QObject(parent)
 {
+    qRegisterMetaType<DownloadHandler*>("DownloadHandler*");
+    qRegisterMetaType<QNetworkReply*>("QNetworkReply*");
+
 #ifndef QT_NO_OPENSSL
     connect(&m_networkManager, SIGNAL(sslErrors(QNetworkReply *, QList<QSslError>)), this, SLOT(ignoreSslErrors(QNetworkReply *, QList<QSslError>)));
 #endif
@@ -158,6 +163,18 @@ DownloadManager *DownloadManager::instance()
 
 DownloadHandler *DownloadManager::downloadUrl(const QString &url, bool saveToFile, qint64 limit, const QString &userAgent)
 {
+    QMutexLocker locker(&m_mutex);
+    auto handler = new DownloadHandler(this, saveToFile, limit);
+    QMetaObject::invokeMethod(
+                this, "beginDownload",
+                Q_ARG(DownloadHandler*, handler),
+                Q_ARG(QString, url),
+                Q_ARG(QString, userAgent));
+    return handler;
+}
+
+void DownloadManager::beginDownload(DownloadHandler *handler, const QString &url, const QString &userAgent)
+{
     // Update proxy settings
     applyProxySettings();
 
@@ -178,7 +195,8 @@ DownloadHandler *DownloadManager::downloadUrl(const QString &url, bool saveToFil
     qDebug() << "Cookies:" << m_networkManager.cookieJar()->cookiesForUrl(request.url());
     // accept gzip
     request.setRawHeader("Accept-Encoding", "gzip");
-    return new DownloadHandler(m_networkManager.get(request), this, saveToFile, limit);
+    auto reply = m_networkManager.get(request);
+    QMetaObject::invokeMethod(handler, "assign", Q_ARG(QNetworkReply*, reply));
 }
 
 QList<QNetworkCookie> DownloadManager::cookiesForUrl(const QUrl &url) const

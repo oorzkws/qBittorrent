@@ -55,7 +55,7 @@ namespace Net
             NetworkError
         };
 
-        DownloadHandler(QNetworkReply *reply, DownloadManager *manager, bool saveToFile = false, qint64 limit = 0);
+        DownloadHandler(DownloadManager *manager, bool saveToFile = false, qint64 limit = 0);
         ~DownloadHandler();
 
         bool isFinished() const;
@@ -75,7 +75,7 @@ namespace Net
         void checkDownloadSize(qint64 bytesReceived, qint64 bytesTotal);
 
     private:
-        void init();
+        Q_INVOKABLE void assign(QNetworkReply *reply);
         bool saveToFile(const QByteArray &replyData, QString &filePath);
         void handleRedirection(QUrl newUrl);
 
