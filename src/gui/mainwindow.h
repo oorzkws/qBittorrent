@@ -133,10 +133,6 @@ private slots:
 #endif
     void updateRSSTabLabel(int count);
 
-#ifdef Q_OS_WIN
-    void pythonDownloadFinished(Net::DownloadHandler *downloadHandler);
-#endif
-
     void addToolbarContextMenu();
     void manageCookies();
 
@@ -238,7 +234,6 @@ private:
     QTimer *m_programUpdateTimer;
     bool m_wasUpdateCheckEnabled;
 #endif
-    bool m_hasPython;
     QMenu *m_toolbarMenu;
 };
 

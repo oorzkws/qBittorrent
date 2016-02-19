@@ -45,7 +45,7 @@
 #include "base/utils/misc.h"
 #include "base/net/downloadmanager.h"
 #include "base/net/downloadhandler.h"
-#include "base/searchengine.h"
+#include "base/search/searchengine.h"
 #include "ico.h"
 #include "searchwidget.h"
 #include "pluginsourcedlg.h"
@@ -287,15 +287,22 @@ void PluginSelectDlg::addNewPlugin(QString pluginName)
         item->setText(PLUGIN_STATE, tr("No"));
         setRowColor(pluginsTree->indexOfTopLevelItem(item), "red");
     }
+
     // Handle icon
-    if (QFile::exists(plugin->iconPath)) {
-        // Good, we already have the icon
-        item->setData(PLUGIN_NAME, Qt::DecorationRole, QVariant(QIcon(plugin->iconPath)));
+    QString iconPath = QString("%1/%2.png").arg(m_pluginManager->pluginsLocation()).arg(plugin->name);
+    if (!QFile::exists(iconPath)) {
+        iconPath = QString("%1/%2.ico").arg(m_pluginManager->pluginsLocation()).arg(plugin->name);
+        if (!QFile::exists(iconPath)) {
+            iconPath.clear();
+            // Icon is missing, we must download it
+            Net::DownloadHandler *handler = Net::DownloadManager::instance()->downloadUrl(plugin->url + "/favicon.ico", true);
+            connect(handler, SIGNAL(downloadFinished(Net::DownloadHandler*)), this, SLOT(iconDownloadFinished(Net::DownloadHandler*)));
+        }
     }
-    else {
-        // Icon is missing, we must download it
-        Net::DownloadHandler *handler = Net::DownloadManager::instance()->downloadUrl(plugin->url + "/favicon.ico", true);
-        connect(handler, SIGNAL(downloadFinished(Net::DownloadHandler*)), this, SLOT(iconDownloadFinished(Net::DownloadHandler*)));
+
+    if (!iconPath.isEmpty()) {
+        // Good, we already have the icon
+        item->setData(PLUGIN_NAME, Qt::DecorationRole, QVariant(QIcon(iconPath)));
     }
     item->setText(PLUGIN_VERSION, QString::number(plugin->version, 'f', 2));
 }
@@ -326,15 +333,15 @@ void PluginSelectDlg::askForPluginUrl()
     bool ok = false;
     QString clipTxt = qApp->clipboard()->text();
     QString defaultUrl = "http://";
-    if (Utils::Misc::isUrl(clipTxt) && clipTxt.endsWith(".py"))
+    if (Utils::Misc::isUrl(clipTxt) && clipTxt.endsWith(".lua"))
       defaultUrl = clipTxt;
     QString url = AutoExpandableDialog::getText(
                 this, tr("New search engine plugin URL"),
                 tr("URL:"), QLineEdit::Normal, defaultUrl, &ok
                 );
 
-    while (ok && !url.isEmpty() && !url.endsWith(".py")) {
-        QMessageBox::warning(this, tr("Invalid link"), tr("The link doesn't seem to point to a search engine plugin."));
+    while (ok && !url.isEmpty() && !url.endsWith(".lua")) {
+        QMessageBox::warning(this, tr("Invalid link"), tr("The link doesn't seem to point to a search engine plugin->"));
         url = AutoExpandableDialog::getText(
                     this, tr("New search engine plugin URL"),
                     tr("URL:"), QLineEdit::Normal, url, &ok
@@ -351,7 +358,7 @@ void PluginSelectDlg::askForLocalPlugin()
 {
     QStringList pathsList = QFileDialog::getOpenFileNames(
                 0, tr("Select search plugins"), QDir::homePath(),
-                tr("qBittorrent search plugin") + QLatin1String(" (*.py)")
+                tr("qBittorrent search plugin") + QLatin1String(" (*.lua)")
                 );
     foreach (QString path, pathsList) {
         startAsyncOp();
@@ -419,7 +426,7 @@ void PluginSelectDlg::pluginInstalled(const QString &name)
 void PluginSelectDlg::pluginInstallationFailed(const QString &name, const QString &reason)
 {
     finishAsyncOp();
-    QMessageBox::information(this, tr("Search plugin install"), tr("Couldn't install \"%1\" search engine plugin. %2").arg(name).arg(reason));
+    QMessageBox::information(this, tr("Search plugin install"), tr("Couldn't install \"%1\" search engine plugin-> %2").arg(name).arg(reason));
 }
 
 void PluginSelectDlg::pluginUpdated(const QString &name)
@@ -435,5 +442,5 @@ void PluginSelectDlg::pluginUpdated(const QString &name)
 void PluginSelectDlg::pluginUpdateFailed(const QString &name, const QString &reason)
 {
     finishAsyncOp();
-    QMessageBox::information(this, tr("Search plugin update"), tr("Couldn't update \"%1\" search engine plugin. %2").arg(name).arg(reason));
+    QMessageBox::information(this, tr("Search plugin update"), tr("Couldn't update \"%1\" search engine plugin-> %2").arg(name).arg(reason));
 }

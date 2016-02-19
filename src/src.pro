@@ -68,8 +68,7 @@ include(base/base.pri)
 QMAKE_RESOURCE_FLAGS += -compress 9 -threshold 5
 RESOURCES += \
     icons.qrc \
-    lang.qrc \
-    searchengine.qrc
+    lang.qrc
 
 # Translations
 TRANSLATIONS = \

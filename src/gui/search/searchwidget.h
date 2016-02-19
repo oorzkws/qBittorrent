@@ -70,7 +70,6 @@ private slots:
     void searchStarted();
     void searchFinished(bool cancelled);
     void searchFailed();
-    void selectMultipleBox(int index);
 
     void addTorrentToSession(const QString &source);
 

@@ -1045,7 +1045,7 @@ bool Session::deleteTorrent(const QString &hash, bool deleteLocalFiles)
 #if LIBTORRENT_VERSION_NUM < 10100
         m_nativeSession->remove_torrent(torrent->nativeHandle());
 #else
-        m_nativeSession->remove_torrent(torrent->nativeHandle(), libt::session::delete_partfile);
+        m_nativeSession->remove_torrent(torrent->nativeHandle());
 #endif
         // Remove unwanted and incomplete files
         foreach (const QString &unwantedFile, unwantedFiles) {
@@ -2128,8 +2128,7 @@ void Session::startUpTorrents()
     qDebug("Resuming torrents...");
 
     const QDir resumeDataDir(m_resumeFolderPath);
-    QStringList fastresumes = resumeDataDir.entryList(
-                QStringList(QLatin1String("*.fastresume")), QDir::Files, QDir::Unsorted);
+    QStringList fastresumes = resumeDataDir.entryList({ "*.fastresume" }, QDir::Files, QDir::Unsorted);
 
     Logger *const logger = Logger::instance();
 

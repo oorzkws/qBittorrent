@@ -1,0 +1,10 @@
+btdigg: 1.0
+demonoid: 1.0
+extratorrent: 1.0
+kickasstorrents: 1.0
+legittorrents: 1.0
+mininova: 1.0
+torlock: 1.0
+piratebay: 1.0
+torrentreactor: 1.0
+torrentz: 1.0

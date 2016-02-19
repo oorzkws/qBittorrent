@@ -78,10 +78,6 @@ namespace Utils
         QString boostVersionString();
         QString libtorrentVersionString();
 
-        int pythonVersion();
-        QString pythonExecutable();
-        QString pythonVersionComplete();
-
         QString unitString(SizeUnit unit);
 
         // return best user friendly storage unit (B, KiB, MiB, GiB, TiB)

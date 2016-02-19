@@ -56,7 +56,7 @@
 #include "base/utils/fs.h"
 #include "base/utils/misc.h"
 #include "base/preferences.h"
-#include "base/searchengine.h"
+#include "base/search/searchengine.h"
 #include "searchlistdelegate.h"
 #include "mainwindow.h"
 #include "addnewtorrentdialog.h"
@@ -116,7 +116,6 @@ SearchWidget::SearchWidget(MainWindow *mainWindow)
 
     connect(m_searchPattern, SIGNAL(returnPressed()), searchButton, SLOT(click()));
     connect(m_searchPattern, SIGNAL(textEdited(QString)), this, SLOT(searchTextEdited(QString)));
-    connect(selectPlugin, SIGNAL(currentIndexChanged(int)), this, SLOT(selectMultipleBox(int)));
 }
 
 void SearchWidget::fillCatCombobox()
@@ -140,16 +139,14 @@ void SearchWidget::fillCatCombobox()
 void SearchWidget::fillPluginComboBox()
 {
     selectPlugin->clear();
-    selectPlugin->addItem(tr("All plugins"), QVariant("all"));
-    selectPlugin->addItem(tr("Only enabled"), QVariant("enabled"));
-    selectPlugin->addItem(tr("Select..."), QVariant("multi"));
-    selectPlugin->insertSeparator(3);
+    selectPlugin->addItem(tr("All plugins"), QVariant("@all"));
+    selectPlugin->insertSeparator(1);
 
     using QStrPair = QPair<QString, QString>;
     QList<QStrPair> tmpList;
     foreach (const QString &name, m_searchEngine->enabledPlugins())
-        tmpList << qMakePair(m_searchEngine->pluginFullName(name), name);
-    std::sort(tmpList.begin(), tmpList.end(), [](const QStrPair &l, const QStrPair &r) { return (l.first < r.first); } );
+        tmpList << qMakePair(m_searchEngine->pluginInfo(name)->fullName, name);
+    std::sort(tmpList.begin(), tmpList.end(), [](const QStrPair &l, const QStrPair &r) { return (l.first < r.first); });
 
     foreach (const QStrPair &p, tmpList)
         selectPlugin->addItem(p.first, QVariant(p.second));
@@ -167,7 +164,6 @@ QString SearchWidget::selectedPlugin() const
 
 SearchWidget::~SearchWidget()
 {
-    qDebug("Search destruction");
     delete m_searchEngine;
 }
 
@@ -197,13 +193,6 @@ void SearchWidget::tab_changed(int t)
             copyURLBtn->setEnabled(false);
         }
     }
-}
-
-void SearchWidget::selectMultipleBox(int index)
-{
-    Q_UNUSED(index);
-    if (selectedPlugin() == "multi")
-        on_pluginsButton_clicked();
 }
 
 void SearchWidget::addTorrentToSession(const QString &source)
@@ -241,11 +230,6 @@ QTabWidget *SearchWidget::searchTabs() const
 // Function called when we click on search button
 void SearchWidget::on_searchButton_clicked()
 {
-    if (Utils::Misc::pythonVersion() < 0) {
-        m_mainWindow->showNotificationBaloon(tr("Search Engine"), tr("Please install Python to use the Search Engine."));
-        return;
-    }
-
     if (m_searchEngine->isActive()) {
         m_searchEngine->cancelSearch();
 
@@ -276,10 +260,10 @@ void SearchWidget::on_searchButton_clicked()
     m_currentSearchTab->getCurrentSearchListProxy()->setNameFilter(pattern);
 
     QStringList plugins;
-    if (selectedPlugin() == "all") plugins = m_searchEngine->allPlugins();
-    else if (selectedPlugin() == "enabled") plugins = m_searchEngine->enabledPlugins();
-    else if (selectedPlugin() == "multi") plugins = m_searchEngine->enabledPlugins();
-    else plugins << selectedPlugin();
+    if (selectedPlugin() == "@all")
+        plugins = m_searchEngine->allPlugins();
+    else
+        plugins << selectedPlugin();
 
     qDebug("Search with category: %s", qPrintable(selectedCategory()));
 

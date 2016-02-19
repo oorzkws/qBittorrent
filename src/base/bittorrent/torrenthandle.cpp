@@ -1169,8 +1169,10 @@ bool TorrentHandle::setCategory(const QString &category)
 
 void TorrentHandle::move(QString path)
 {
-    m_useASM = false;
-    m_session->handleTorrentSavingModeChanged(this);
+    if (m_useASM) {
+        m_useASM = false;
+        m_session->handleTorrentSavingModeChanged(this);
+    }
 
     path = Utils::Fs::fromNativePath(path.trimmed());
     if (path.isEmpty())

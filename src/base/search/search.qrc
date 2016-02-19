@@ -1,0 +1,26 @@
+<RCC>
+    <qresource prefix="/">
+        <file>plugins/search/btdigg.lua</file>
+        <file>plugins/search/btdigg.png</file>
+        <file>plugins/search/versions.txt</file>
+        <file>plugins/search/kickasstorrents.lua</file>
+        <file>plugins/search/kickasstorrents.png</file>
+        <file>plugins/search/demonoid.png</file>
+        <file>plugins/search/extratorrent.png</file>
+        <file>plugins/search/isohunt.png</file>
+        <file>plugins/search/legittorrents.png</file>
+        <file>plugins/search/mininova.png</file>
+        <file>plugins/search/piratebay.png</file>
+        <file>plugins/search/torrentreactor.png</file>
+        <file>plugins/search/torrentz.png</file>
+        <file>plugins/search/demonoid.lua</file>
+        <file>plugins/search/extratorrent.lua</file>
+        <file>plugins/search/legittorrents.lua</file>
+        <file>plugins/search/mininova.lua</file>
+        <file>plugins/search/torlock.png</file>
+        <file>plugins/search/torlock.lua</file>
+        <file>plugins/search/torrentreactor.lua</file>
+        <file>plugins/search/piratebay.lua</file>
+        <file>plugins/search/torrentz.lua</file>
+    </qresource>
+</RCC>

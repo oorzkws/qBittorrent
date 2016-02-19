@@ -7,6 +7,7 @@ HEADERS += \
     $$PWD/settingsstorage.h \
     $$PWD/preferences.h \
     $$PWD/iconprovider.h \
+    $$PWD/htmlparser.h \
     $$PWD/http/irequesthandler.h \
     $$PWD/http/connection.h \
     $$PWD/http/requestparser.h \
@@ -54,7 +55,10 @@ HEADERS += \
     $$PWD/unicodestrings.h \
     $$PWD/torrentfilter.h \
     $$PWD/scanfoldersmodel.h \
-    $$PWD/searchengine.h
+    $$PWD/search/searchengine.h \
+    $$PWD/search/private/searchworker.h \
+    $$PWD/search/private/luastate.h \
+    $$PWD/search/private/luafunctions.h
 
 SOURCES += \
     $$PWD/tristatebool.cpp \
@@ -63,6 +67,7 @@ SOURCES += \
     $$PWD/settingsstorage.cpp \
     $$PWD/preferences.cpp \
     $$PWD/iconprovider.cpp \
+    $$PWD/htmlparser.cpp \
     $$PWD/http/connection.cpp \
     $$PWD/http/requestparser.cpp \
     $$PWD/http/responsegenerator.cpp \
@@ -106,10 +111,18 @@ SOURCES += \
     $$PWD/utils/string.cpp \
     $$PWD/torrentfilter.cpp \
     $$PWD/scanfoldersmodel.cpp \
-    $$PWD/searchengine.cpp
-    
+    $$PWD/search/searchengine.cpp \
+    $$PWD/search/private/searchworker.cpp \
+    $$PWD/search/private/luastate.cpp \
+    $$PWD/search/private/luafunctions.cpp
+
+RESOURCES += \
+    $$PWD/search/search.qrc
+
 # QJson JSON parser/serializer for using with Qt4
 lessThan(QT_MAJOR_VERSION, 5) {
     !usesystemqjson: include(3rdparty/qjson/qjson.pri)
     else: DEFINES += USE_SYSTEM_QJSON
 }
+
+include(3rdparty/lua/lua.pri)

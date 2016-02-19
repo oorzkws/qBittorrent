@@ -122,7 +122,6 @@ MainWindow::MainWindow(QWidget *parent)
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
     , m_wasUpdateCheckEnabled(false)
 #endif
-    , m_hasPython(false)
 {
     m_ui->setupUi(this);
 
@@ -1449,66 +1448,6 @@ void MainWindow::on_actionRSSReader_triggered()
 
 void MainWindow::on_actionSearchWidget_triggered()
 {
-    if (!m_hasPython && m_ui->actionSearchWidget->isChecked()) {
-        int pythonVersion = Utils::Misc::pythonVersion();
-
-        // Check if python is already in PATH
-        if (pythonVersion > 0)
-            Logger::instance()->addMessage(tr("Python found in %1").arg("PATH"), Log::INFO); // Prevent translators from messing with PATH
-#ifdef Q_OS_WIN
-        else if (addPythonPathToEnv())
-            pythonVersion = Utils::Misc::pythonVersion();
-#endif
-
-        bool res = false;
-
-        if ((pythonVersion == 2) || (pythonVersion == 3)) {
-            // Check python minimum requirement: 2.7.0/3.3.0
-            QString version = Utils::Misc::pythonVersionComplete();
-            QStringList splitted = version.split('.');
-            if (splitted.size() > 1) {
-                int middleVer = splitted.at(1).toInt();
-                if (((pythonVersion == 2) && (middleVer < 7)) || ((pythonVersion == 3) && (middleVer < 3))) {
-                    QMessageBox::information(this, tr("Old Python Interpreter"), tr("Your Python version %1 is outdated. Please upgrade to latest version for search engines to work. Minimum requirement: 2.7.0/3.3.0.").arg(version));
-                    m_ui->actionSearchWidget->setChecked(false);
-                    Preferences::instance()->setSearchEnabled(false);
-                    return;
-                }
-                else {
-                    res = true;
-                }
-            }
-            else {
-                QMessageBox::information(this, tr("Undetermined Python version"), tr("Couldn't determine your Python version (%1). Search engine disabled.").arg(version));
-                m_ui->actionSearchWidget->setChecked(false);
-                Preferences::instance()->setSearchEnabled(false);
-                return;
-            }
-        }
-
-        if (res) {
-            m_hasPython = true;
-        }
-#ifdef Q_OS_WIN
-        else if (QMessageBox::question(this, tr("Missing Python Interpreter"),
-                                       tr("Python is required to use the search engine but it does not seem to be installed.\nDo you want to install it now?"),
-                                       QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes) {
-            // Download and Install Python
-            installPython();
-            m_ui->actionSearchWidget->setChecked(false);
-            Preferences::instance()->setSearchEnabled(false);
-            return;
-        }
-#endif
-        else {
-#ifndef Q_OS_WIN
-            QMessageBox::information(this, tr("Missing Python Interpreter"), tr("Python is required to use the search engine but it does not seem to be installed."));
-#endif
-            m_ui->actionSearchWidget->setChecked(false);
-            Preferences::instance()->setSearchEnabled(false);
-            return;
-        }
-    }
     displaySearchTab(m_ui->actionSearchWidget->isChecked());
 }
 
@@ -1703,72 +1642,5 @@ void MainWindow::checkProgramUpdate()
     ProgramUpdater *updater = new ProgramUpdater(this, invokedByUser);
     connect(updater, SIGNAL(updateCheckFinished(bool, QString, bool)), SLOT(handleUpdateCheckFinished(bool, QString, bool)));
     updater->checkForUpdates();
-}
-#endif
-
-#ifdef Q_OS_WIN
-bool MainWindow::addPythonPathToEnv()
-{
-    if (m_hasPython) return true;
-
-    QString pythonPath = Preferences::getPythonPath();
-    if (!pythonPath.isEmpty()) {
-        Logger::instance()->addMessage(tr("Python found in '%1'").arg(Utils::Fs::toNativePath(pythonPath)), Log::INFO);
-        // Add it to PATH envvar
-        QString pathEnvar = QString::fromLocal8Bit(qgetenv("PATH").constData());
-        if (pathEnvar.isNull())
-            pathEnvar = "";
-        pathEnvar = pythonPath + ";" + pathEnvar;
-        qDebug("New PATH envvar is: %s", qPrintable(pathEnvar));
-        qputenv("PATH", Utils::Fs::toNativePath(pathEnvar).toLocal8Bit());
-        return true;
-    }
-    return false;
-}
-
-void MainWindow::installPython()
-{
-    setCursor(QCursor(Qt::WaitCursor));
-    // Download python
-    Net::DownloadHandler *handler = Net::DownloadManager::instance()->downloadUrl("https://www.python.org/ftp/python/3.4.3/python-3.4.3.msi", true);
-    connect(handler, SIGNAL(downloadFinished(Net::DownloadHandler*)), this, SLOT(pythonDownloadFinished(Net::DownloadHandler*)));
-}
-
-void MainWindow::pythonDownloadFinished(Net::DownloadHandler *downloadHandler)
-{
-    downloadHandler->deleteLater();
-
-    if (downloadHandler->error() != Net::DownloadHandler::NoError) {
-        setCursor(QCursor(Qt::ArrowCursor));
-        QMessageBox::warning(this, tr("Download error"),
-                             tr("Python setup could not be downloaded, reason: %1.\nPlease install it manually.")
-                             .arg(downloadHandler->errorString()));
-        return;
-    }
-
-    QString filePath = downloadHandler->filePath();
-
-    setCursor(QCursor(Qt::ArrowCursor));
-    QFile::rename(filePath, filePath + ".msi");
-    QProcess installer;
-    qDebug("Launching Python installer in passive mode...");
-
-    installer.start("msiexec.exe /passive /i " + Utils::Fs::toNativePath(filePath) + ".msi");
-    // Wait for setup to complete
-    installer.waitForFinished();
-
-    qDebug("Installer stdout: %s", installer.readAllStandardOutput().data());
-    qDebug("Installer stderr: %s", installer.readAllStandardError().data());
-    qDebug("Setup should be complete!");
-    // Delete temp file
-    Utils::Fs::forceRemove(filePath);
-    // Reload search engine
-    m_hasPython = addPythonPathToEnv();
-    if (m_hasPython) {
-        // Make it print the version to Log
-        Utils::Misc::pythonVersion();
-        m_ui->actionSearchWidget->setChecked(true);
-        displaySearchTab(true);
-    }
 }
 #endif
