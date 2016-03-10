@@ -48,6 +48,7 @@ HEADERS += \
     $$PWD/rss/private/rssparser.h \
     $$PWD/utils/fs.h \
     $$PWD/utils/gzip.h \
+    $$PWD/utils/json.h \
     $$PWD/utils/misc.h \
     $$PWD/utils/string.h \
     $$PWD/unicodestrings.h \
@@ -106,3 +107,9 @@ SOURCES += \
     $$PWD/torrentfilter.cpp \
     $$PWD/scanfoldersmodel.cpp \
     $$PWD/searchengine.cpp
+    
+# QJson JSON parser/serializer for using with Qt4
+lessThan(QT_MAJOR_VERSION, 5) {
+    !usesystemqjson: include(3rdparty/qjson/qjson.pri)
+    else: DEFINES += USE_SYSTEM_QJSON
+}

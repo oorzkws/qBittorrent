@@ -39,7 +39,7 @@
 #include "base/bittorrent/peerinfo.h"
 #include "base/torrentfilter.h"
 #include "base/net/geoipmanager.h"
-#include "jsonutils.h"
+#include "base/utils/json.h"
 
 #include <QDebug>
 #include <QVariant>
@@ -57,7 +57,7 @@
     static QElapsedTimer cacheTimer; \
     static bool initialized = false; \
     if (initialized && !cacheTimer.hasExpired(DUR)) \
-        return json::toJson(VAR); \
+        return Utils::JSON::toJson(VAR); \
     initialized = true; \
     cacheTimer.start(); \
     VAR = VARTYPE()
@@ -67,7 +67,7 @@
     static QString prev_hash; \
     static QElapsedTimer cacheTimer; \
     if (prev_hash == HASH && !cacheTimer.hasExpired(DUR)) \
-        return json::toJson(VAR); \
+        return Utils::JSON::toJson(VAR); \
     prev_hash = HASH; \
     cacheTimer.start(); \
     VAR = VARTYPE()
@@ -303,9 +303,9 @@ QByteArray btjson::getTorrents(QString filter, QString category,
         limit = -1; // unlimited
 
     if ((limit > 0) || (offset > 0))
-        return json::toJson(torrentList.mid(offset, limit));
+        return Utils::JSON::toJson(torrentList.mid(offset, limit));
     else
-        return json::toJson(torrentList);
+        return Utils::JSON::toJson(torrentList);
 }
 
 /**
@@ -374,7 +374,7 @@ QByteArray btjson::getSyncMainData(int acceptedResponseId, QVariantMap &lastData
     serverState[KEY_SYNC_MAINDATA_REFRESH_INTERVAL] = Preferences::instance()->getRefreshInterval();
     data["server_state"] = serverState;
 
-    return json::toJson(generateSyncData(acceptedResponseId, data, lastAcceptedData, lastData));
+    return Utils::JSON::toJson(generateSyncData(acceptedResponseId, data, lastAcceptedData, lastData));
 }
 
 QByteArray btjson::getSyncTorrentPeersData(int acceptedResponseId, QString hash, QVariantMap &lastData, QVariantMap &lastAcceptedData)
@@ -422,7 +422,7 @@ QByteArray btjson::getSyncTorrentPeersData(int acceptedResponseId, QString hash,
 
     data["peers"] = peers;
 
-    return json::toJson(generateSyncData(acceptedResponseId, data, lastAcceptedData, lastData));
+    return Utils::JSON::toJson(generateSyncData(acceptedResponseId, data, lastAcceptedData, lastData));
 }
 
 /**
@@ -467,7 +467,7 @@ QByteArray btjson::getTrackersForTorrent(const QString& hash)
         trackerList.append(trackerDict);
     }
 
-    return json::toJson(trackerList);
+    return Utils::JSON::toJson(trackerList);
 }
 
 /**
@@ -492,7 +492,7 @@ QByteArray btjson::getWebSeedsForTorrent(const QString& hash)
         webSeedList.append(webSeedDict);
     }
 
-    return json::toJson(webSeedList);
+    return Utils::JSON::toJson(webSeedList);
 }
 
 /**
@@ -585,7 +585,7 @@ QByteArray btjson::getPropertiesForTorrent(const QString& hash)
     dataDict[KEY_PROP_SAVE_PATH] = Utils::Fs::toNativePath(torrent->savePath());
     dataDict[KEY_PROP_COMMENT] = torrent->comment();
 
-    return json::toJson(dataDict);
+    return Utils::JSON::toJson(dataDict);
 }
 
 /**
@@ -609,7 +609,7 @@ QByteArray btjson::getFilesForTorrent(const QString& hash)
     }
 
     if (!torrent->hasMetadata())
-        return json::toJson(fileList);
+        return Utils::JSON::toJson(fileList);
 
     const QVector<int> priorities = torrent->filePriorities();
     QVector<qreal> fp = torrent->filesProgress();
@@ -629,7 +629,7 @@ QByteArray btjson::getFilesForTorrent(const QString& hash)
         fileList.append(fileDict);
     }
 
-    return json::toJson(fileList);
+    return Utils::JSON::toJson(fileList);
 }
 
 /**
@@ -648,7 +648,7 @@ QByteArray btjson::getFilesForTorrent(const QString& hash)
  */
 QByteArray btjson::getTransferInfo()
 {
-    return json::toJson(getTranserInfoMap());
+    return Utils::JSON::toJson(getTranserInfoMap());
 }
 
 QVariantMap getTranserInfoMap()
@@ -681,7 +681,7 @@ QByteArray btjson::getTorrentsRatesLimits(QStringList &hashes, bool downloadLimi
         map[hash] = limit;
     }
 
-    return json::toJson(map);
+    return Utils::JSON::toJson(map);
 }
 
 QVariantMap toMap(BitTorrent::TorrentHandle *const torrent)

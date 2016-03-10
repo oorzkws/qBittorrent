@@ -40,7 +40,7 @@
 #include "base/scanfoldersmodel.h"
 #include "base/utils/fs.h"
 #include "base/bittorrent/session.h"
-#include "jsonutils.h"
+#include "base/utils/json.h"
 #include "prefjson.h"
 
 prefjson::prefjson()
@@ -164,14 +164,14 @@ QByteArray prefjson::getPreferences()
     data["dyndns_password"] = pref->getDynDNSPassword();
     data["dyndns_domain"] = pref->getDynDomainName();
 
-    return json::toJson(data);
+    return Utils::JSON::toJson(data);
 }
 
 void prefjson::setPreferences(const QString& json)
 {
     Preferences* const pref = Preferences::instance();
     auto session = BitTorrent::Session::instance();
-    const QVariantMap m = json::fromJson(json).toMap();
+    const QVariantMap m = Utils::JSON::fromJson(json).toMap();
 
     // Downloads
     // Hard Disk

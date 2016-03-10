@@ -43,9 +43,9 @@
 #include "base/bittorrent/torrentinfo.h"
 #include "base/bittorrent/torrenthandle.h"
 #include "base/net/downloadmanager.h"
+#include "base/utils/json.h"
 #include "btjson.h"
 #include "prefjson.h"
-#include "jsonutils.h"
 #include "websessiondata.h"
 #include "webapplication.h"
 

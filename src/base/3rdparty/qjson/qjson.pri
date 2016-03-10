@@ -8,8 +8,8 @@ HEADERS += $$PWD/FlexLexer.h \
            $$PWD/json_scanner.h \
            $$PWD/parser.h \
            $$PWD/parser_p.h \
-           $$PWD_debug.h \
-           $$PWD_export.h \
+           $$PWD/qjson_debug.h \
+           $$PWD/qjson_export.h \
            $$PWD/serializer.h
 
 SOURCES += $$PWD/json_parser.cc \

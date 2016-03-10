@@ -26,8 +26,8 @@
  * exception statement from your version.
  */
 
-#ifndef JSONUTILS_H
-#define JSONUTILS_H
+#ifndef UTILS_JSON_H
+#define UTILS_JSON_H
 
 #include <QVariant>
 #ifdef QBT_USES_QT5
@@ -37,36 +37,38 @@
 #else
 #include <QString>
 #ifndef USE_SYSTEM_QJSON
-#include "qjson/parser.h"
-#include "qjson/serializer.h"
+#include "base/3rdparty/qjson/parser.h"
+#include "base/3rdparty/qjson/serializer.h"
 #else // USE_SYSTEM_QJSON
 #include <qjson/parser.h>
 #include <qjson/serializer.h>
 #endif // USE_SYSTEM_QJSON
 #endif
 
-namespace json {
-
-    inline QByteArray toJson(const QVariant& var)
+namespace Utils
+{
+    namespace JSON
     {
-#ifdef QBT_USES_QT5
-        return QJsonDocument::fromVariant(var).toJson(QJsonDocument::Compact);
-#else
-        QJson::Serializer serializer;
-        serializer.setIndentMode(QJson::IndentCompact);
-        return serializer.serialize(var);
-#endif
-    }
+        inline QByteArray toJson(const QVariant& var)
+        {
+    #ifdef QBT_USES_QT5
+            return QJsonDocument::fromVariant(var).toJson(QJsonDocument::Compact);
+    #else
+            QJson::Serializer serializer;
+            serializer.setIndentMode(QJson::IndentCompact);
+            return serializer.serialize(var);
+    #endif
+        }
 
-    inline QVariant fromJson(const QString& json)
-    {
-#ifdef QBT_USES_QT5
-        return QJsonDocument::fromJson(json.toUtf8()).toVariant();
-#else
-        return QJson::Parser().parse(json.toUtf8());
-#endif
+        inline QVariant fromJson(const QString& json)
+        {
+    #ifdef QBT_USES_QT5
+            return QJsonDocument::fromJson(json.toUtf8()).toVariant();
+    #else
+            return QJson::Parser().parse(json.toUtf8());
+    #endif
+        }
     }
-
 }
 
-#endif // JSONUTILS_H
+#endif // UTILS_JSON_H
