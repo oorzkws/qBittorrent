@@ -1,8 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017-2018  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2010  Christophe Dumez <chris@qbittorrent.org>
- * Copyright (C) 2010  Arnaud Demaiziere <arnaud@qbittorrent.org>
+ * Copyright (C) 2018  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,42 +28,13 @@
 
 #pragma once
 
-#include <QList>
-#include "rss_item.h"
+#include <QSortFilterProxyModel>
 
-namespace RSS
+class RSSSortModel : public QSortFilterProxyModel
 {
-    namespace Private
-    {
-        class Session;
-    }
+public:
+    using QSortFilterProxyModel::QSortFilterProxyModel;
 
-    class Folder final : public Item
-    {
-        Q_OBJECT
-        Q_DISABLE_COPY(Folder)
-
-        friend class Private::Session;
-
-        explicit Folder(qint64 id, const QString &path = "");
-        ~Folder() override;
-
-    public:
-        QList<Article *> articles() const override;
-        int unreadCount() const override;
-        void markAsRead() override;
-
-        QList<Item *> items() const;
-
-        QJsonValue toJsonValue(bool withData = false) const override;
-
-    private slots:
-        void handleItemUnreadCountChanged();
-
-    private:
-        void addItem(Item *item);
-        void removeItem(Item *item);
-
-        QList<Item *> m_items;
-    };
-}
+protected:
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+};

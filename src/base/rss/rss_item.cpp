@@ -38,8 +38,10 @@ using namespace RSS;
 
 const QChar Item::PathSeparator('\\');
 
-Item::Item(const QString &path)
-    : m_path(path)
+Item::Item(qint64 id, const QString &path)
+    : m_id {id}
+    , m_parent {nullptr}
+    , m_path {path}
 {
 }
 
@@ -51,6 +53,16 @@ void Item::setPath(const QString &path)
         m_path = path;
         emit pathChanged(this);
     }
+}
+
+qint64 Item::id() const
+{
+    return m_id;
+}
+
+Folder *Item::parent() const
+{
+    return m_parent;
 }
 
 QString Item::path() const

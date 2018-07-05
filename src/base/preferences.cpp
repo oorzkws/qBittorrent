@@ -60,6 +60,18 @@
 #include "settingsstorage.h"
 #include "utils/fs.h"
 
+namespace
+{
+    struct MetaTypeRegistrator
+    {
+        MetaTypeRegistrator()
+        {
+            qRegisterMetaType<QList<qint64>>();
+            qRegisterMetaTypeStreamOperators<QList<qint64>>();
+        }
+    } metaTypeRegistrator;
+}
+
 Preferences *Preferences::m_instance = nullptr;
 
 Preferences::Preferences() = default;
@@ -1271,14 +1283,14 @@ void Preferences::setRssHSplitterSizes(const QByteArray &sizes)
     setValue("RssFeedDownloader/qt5/hsplitterSizes", sizes);
 }
 
-QStringList Preferences::getRssOpenFolders() const
+QList<qint64> Preferences::getRSSWidgetExpandedItems() const
 {
-    return value("GUI/RSSWidget/OpenedFolders").toStringList();
+    return value("GUI/RSSWidget/ExpandedItems").value<QList<qint64>>();
 }
 
-void Preferences::setRssOpenFolders(const QStringList &folders)
+void Preferences::setRSSWidgetExpandedItems(const QList<qint64> &items)
 {
-    setValue("GUI/RSSWidget/OpenedFolders", folders);
+    setValue("GUI/RSSWidget/ExpandedItems", QVariant::fromValue(items));
 }
 
 QByteArray Preferences::getRssSideSplitterState() const

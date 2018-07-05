@@ -30,10 +30,12 @@ HEADERS += \
     $$PWD/private/fspathedit_p.h \
     $$PWD/private/tristatewidget.h \
     $$PWD/raisedmessagebox.h \
-    $$PWD/rss/articlelistwidget.h \
     $$PWD/rss/automatedrssdownloader.h \
-    $$PWD/rss/feedlistwidget.h \
     $$PWD/rss/htmlbrowser.h \
+    $$PWD/rss/rssfeedmodel.h \
+    $$PWD/rss/rssfeedsortmodel.h \
+    $$PWD/rss/rssmodel.h \
+    $$PWD/rss/rsssortmodel.h \
     $$PWD/rss/rsswidget.h \
     $$PWD/scanfoldersdelegate.h \
     $$PWD/search/pluginselectdialog.h \
@@ -93,10 +95,12 @@ SOURCES += \
     $$PWD/private/fspathedit_p.cpp \
     $$PWD/private/tristatewidget.cpp \
     $$PWD/raisedmessagebox.cpp \
-    $$PWD/rss/articlelistwidget.cpp \
     $$PWD/rss/automatedrssdownloader.cpp \
-    $$PWD/rss/feedlistwidget.cpp \
     $$PWD/rss/htmlbrowser.cpp \
+    $$PWD/rss/rssfeedmodel.cpp \
+    $$PWD/rss/rssfeedsortmodel.cpp \
+    $$PWD/rss/rssmodel.cpp \
+    $$PWD/rss/rsssortmodel.cpp \
     $$PWD/rss/rsswidget.cpp \
     $$PWD/scanfoldersdelegate.cpp \
     $$PWD/search/pluginselectdialog.cpp \

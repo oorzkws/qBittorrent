@@ -39,18 +39,23 @@ namespace RSS
 {
     class Feed;
 
+    namespace Private
+    {
+        class Session;
+    }
+
     class Article : public QObject
     {
         Q_OBJECT
         Q_DISABLE_COPY(Article)
 
-        friend class Feed;
+        friend class Private::Session;
 
         Article(Feed *feed, const QVariantHash &varHash);
         Article(Feed *feed, const QJsonObject &jsonObj);
 
     public:
-        static const QString KeyId;
+        static const QString KeyLocalId;
         static const QString KeyDate;
         static const QString KeyTitle;
         static const QString KeyAuthor;
@@ -60,7 +65,7 @@ namespace RSS
         static const QString KeyIsRead;
 
         Feed *feed() const;
-        QString guid() const;
+        QString localId() const;
         QDateTime date() const;
         QString title() const;
         QString author() const;
@@ -81,7 +86,7 @@ namespace RSS
 
     private:
         Feed *m_feed = nullptr;
-        QString m_guid;
+        QString m_localId;
         QDateTime m_date;
         QString m_title;
         QString m_author;

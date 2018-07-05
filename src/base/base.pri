@@ -47,14 +47,16 @@ HEADERS += \
     $$PWD/preferences.h \
     $$PWD/private/profile_p.h \
     $$PWD/profile.h \
+    $$PWD/rss/private/rss_feedimpl.h \
     $$PWD/rss/private/rss_parser.h \
+    $$PWD/rss/private/rss_session.h \
     $$PWD/rss/rss_article.h \
     $$PWD/rss/rss_autodownloader.h \
     $$PWD/rss/rss_autodownloadrule.h \
     $$PWD/rss/rss_feed.h \
     $$PWD/rss/rss_folder.h \
     $$PWD/rss/rss_item.h \
-    $$PWD/rss/rss_session.h \
+    $$PWD/rss/rss_manager.h \
     $$PWD/scanfoldersmodel.h \
     $$PWD/search/searchhandler.h \
     $$PWD/search/searchdownloadhandler.h \
@@ -74,6 +76,7 @@ HEADERS += \
     $$PWD/utils/net.h \
     $$PWD/utils/password.h \
     $$PWD/utils/random.h \
+    $$PWD/utils/sql.h \
     $$PWD/utils/string.h \
     $$PWD/utils/version.h
 
@@ -117,14 +120,16 @@ SOURCES += \
     $$PWD/preferences.cpp \
     $$PWD/private/profile_p.cpp \
     $$PWD/profile.cpp \
+    $$PWD/rss/private/rss_feedimpl.cpp \
     $$PWD/rss/private/rss_parser.cpp \
+    $$PWD/rss/private/rss_session.cpp \
     $$PWD/rss/rss_article.cpp \
     $$PWD/rss/rss_autodownloader.cpp \
     $$PWD/rss/rss_autodownloadrule.cpp \
     $$PWD/rss/rss_feed.cpp \
     $$PWD/rss/rss_folder.cpp \
     $$PWD/rss/rss_item.cpp \
-    $$PWD/rss/rss_session.cpp \
+    $$PWD/rss/rss_manager.cpp \
     $$PWD/scanfoldersmodel.cpp \
     $$PWD/search/searchdownloadhandler.cpp \
     $$PWD/search/searchhandler.cpp \
@@ -141,4 +146,5 @@ SOURCES += \
     $$PWD/utils/net.cpp \
     $$PWD/utils/password.cpp \
     $$PWD/utils/random.cpp \
+    $$PWD/utils/sql.cpp \
     $$PWD/utils/string.cpp

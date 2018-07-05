@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2019  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,42 +26,38 @@
  * exception statement from your version.
  */
 
-#ifndef ARTICLELISTWIDGET_H
-#define ARTICLELISTWIDGET_H
+#pragma once
 
-#include <QHash>
-#include <QListWidget>
+#include <QString>
+#include <QStringList>
 
-namespace RSS
+namespace Utils
 {
-    class Article;
-    class Item;
+    namespace SQL
+    {
+        class AbstractQueryBuilder
+        {
+        public:
+            virtual ~AbstractQueryBuilder();
+            virtual QString getQuery() const = 0;
+        };
+
+        class CreateTableQueryBuilder : public AbstractQueryBuilder
+        {
+        public:
+            explicit CreateTableQueryBuilder(const QString &tableName);
+
+            CreateTableQueryBuilder &column(const QString &columnName, const QString &columnDef);
+            CreateTableQueryBuilder &unique(const QStringList &columnNames);
+            CreateTableQueryBuilder &foreignKey(const QStringList &columnNames, const QString &foreignTableName
+                                                , const QStringList &foreignColumnNames, const QString &def);
+            QString getQuery() const override;
+
+        private:
+            QString m_tableName;
+            QStringList m_defs;
+        };
+
+        CreateTableQueryBuilder createTable(const QString &tableName);
+    }
 }
-
-class ArticleListWidget : public QListWidget
-{
-    Q_OBJECT
-
-public:
-    explicit ArticleListWidget(QWidget *parent);
-
-    RSS::Article *getRSSArticle(QListWidgetItem *item) const;
-    QListWidgetItem *mapRSSArticle(RSS::Article *rssArticle) const;
-
-    void setRSSItem(RSS::Item *rssItem, bool unreadOnly = false);
-
-private slots:
-    void handleArticleAdded(RSS::Article *rssArticle);
-    void handleArticleRead(RSS::Article *rssArticle);
-    void handleArticleAboutToBeRemoved(RSS::Article *rssArticle);
-
-private:
-    void checkInvariant() const;
-    QListWidgetItem *createItem(RSS::Article *article) const;
-
-    RSS::Item *m_rssItem = nullptr;
-    bool m_unreadOnly = false;
-    QHash<RSS::Article *, QListWidgetItem *> m_rssArticleToListItemMapping;
-};
-
-#endif // ARTICLELISTWIDGET_H

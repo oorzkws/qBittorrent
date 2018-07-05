@@ -162,7 +162,7 @@ private:
 
 namespace
 {
-    QString shortName(const QString &fullName)
+    QString relName(const QString &fullName)
     {
         int pos = fullName.lastIndexOf(QLatin1Char('/'));
         if (pos >= 0)
@@ -315,7 +315,7 @@ void CategoryFilterModel::categoryAdded(const QString &categoryName)
     int row = parent->childCount();
     beginInsertRows(index(parent), row, row);
     new CategoryModelItem(
-            parent, m_isSubcategoriesEnabled ? shortName(categoryName) : categoryName);
+            parent, m_isSubcategoriesEnabled ? relName(categoryName) : categoryName);
     endInsertRows();
 }
 
@@ -409,7 +409,7 @@ void CategoryFilterModel::populate()
         if (m_isSubcategoriesEnabled) {
             CategoryModelItem *parent = m_rootItem;
             for (const QString &subcat : asConst(session->expandCategory(category))) {
-                const QString subcatName = shortName(subcat);
+                const QString subcatName = relName(subcat);
                 if (!parent->hasChild(subcatName)) {
                     new CategoryModelItem(
                                 parent, subcatName
@@ -438,7 +438,7 @@ CategoryModelItem *CategoryFilterModel::findItem(const QString &fullName) const
 
     CategoryModelItem *item = m_rootItem;
     for (const QString &subcat : asConst(BitTorrent::Session::expandCategory(fullName))) {
-        const QString subcatName = shortName(subcat);
+        const QString subcatName = relName(subcat);
         if (!item->hasChild(subcatName)) return nullptr;
         item = item->child(subcatName);
     }

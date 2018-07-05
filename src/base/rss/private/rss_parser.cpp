@@ -524,29 +524,17 @@ using namespace RSS::Private;
 
 const int ParsingResultTypeId = qRegisterMetaType<ParsingResult>();
 
-Parser::Parser(const QString lastBuildDate)
-{
-    m_result.lastBuildDate = lastBuildDate;
-}
-
-void Parser::parse(const QByteArray &feedData)
-{
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
-    QMetaObject::invokeMethod(this, [this, feedData]() { parse_impl(feedData); }
-                              , Qt::QueuedConnection);
-#else
-    QMetaObject::invokeMethod(this, "parse_impl", Qt::QueuedConnection
-                              , Q_ARG(QByteArray, feedData));
-#endif
-}
-
-// read and create items from a rss document
-void Parser::parse_impl(const QByteArray &feedData)
+// read and create items from a RSS document
+void Parser::parse(const QString &url, const QByteArray &feedData, const QString &lastBuildDate)
 {
     QXmlStreamReader xml(feedData);
     XmlStreamEntityResolver resolver;
     xml.setEntityResolver(&resolver);
     bool foundChannel = false;
+
+    m_result = {};
+    m_result.url = url;
+    m_result.lastBuildDate = lastBuildDate;
 
     while (xml.readNextStartElement()) {
         if (xml.name() == "rss") {
@@ -583,8 +571,6 @@ void Parser::parse_impl(const QByteArray &feedData)
     }
 
     emit finished(m_result);
-    m_result.articles.clear(); // clear articles only
-    m_articleIDs.clear();
 }
 
 void Parser::parseRssArticle(QXmlStreamReader &xml)
@@ -626,7 +612,7 @@ void Parser::parseRssArticle(QXmlStreamReader &xml)
                 article[Article::KeyAuthor] = xml.readElementText().trimmed();
             }
             else if (name == QLatin1String("guid")) {
-                article[Article::KeyId] = xml.readElementText().trimmed();
+                article[Article::KeyLocalId] = xml.readElementText().trimmed();
             }
             else {
                 article[name] = xml.readElementText(QXmlStreamReader::IncludeChildElements);
@@ -724,7 +710,7 @@ void Parser::parseAtomArticle(QXmlStreamReader &xml)
                 }
             }
             else if (name == QLatin1String("id")) {
-                article[Article::KeyId] = xml.readElementText().trimmed();
+                article[Article::KeyLocalId] = xml.readElementText().trimmed();
             }
             else {
                 article[name] = xml.readElementText(QXmlStreamReader::IncludeChildElements);
@@ -770,7 +756,7 @@ void Parser::addArticle(QVariantHash article)
         torrentURL = article[Article::KeyLink];
 
     // If item does not have an ID, fall back to some other identifier.
-    QVariant &localId = article[Article::KeyId];
+    QVariant &localId = article[Article::KeyLocalId];
     if (localId.toString().isEmpty())
         localId = article.value(Article::KeyTorrentURL);
     if (localId.toString().isEmpty())

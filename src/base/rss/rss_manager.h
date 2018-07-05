@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2017-2018  Vladimir Golovnev <glassez@yandex.ru>
  * Copyright (C) 2010  Christophe Dumez <chris@qbittorrent.org>
  * Copyright (C) 2010  Arnaud Demaiziere <arnaud@qbittorrent.org>
  *
@@ -62,41 +62,38 @@
  * 3.   Feed is JSON object (keys are property names, values are property values; 'uid' and 'url' are required)
  */
 
-#include <QHash>
 #include <QObject>
 #include <QPointer>
-#include <QTimer>
-
-class QThread;
 
 class Application;
-class AsyncFileStorage;
 
 namespace RSS
 {
+    class Article;
     class Feed;
     class Folder;
     class Item;
 
-    class Session : public QObject
+    namespace Private
+    {
+        class Session;
+    }
+
+    class Manager : public QObject
     {
         Q_OBJECT
-        Q_DISABLE_COPY(Session)
+        Q_DISABLE_COPY(Manager)
 
         friend class ::Application;
 
-        Session();
-        ~Session() override;
+        Manager();
+        ~Manager() override = default;
 
     public:
-        static Session *instance();
+        static Manager *instance();
 
         bool isProcessingEnabled() const;
         void setProcessingEnabled(bool enabled);
-
-        QThread *workingThread() const;
-        AsyncFileStorage *confFileStorage() const;
-        AsyncFileStorage *dataFileStorage() const;
 
         int maxArticlesPerFeed() const;
         void setMaxArticlesPerFeed(int n);
@@ -104,22 +101,32 @@ namespace RSS
         uint refreshInterval() const;
         void setRefreshInterval(uint refreshInterval);
 
+        Folder *addFolder(const QString &name);
+        Folder *addFolder(const QString &name, Folder &destFolder);
+        Feed *addFeed(const QString &url, const QString &name);
+        Feed *addFeed(const QString &url, const QString &name, Folder &destFolder);
+        void renameItem(Item &item, const QString &name);
+        void moveItem(Item &item, Folder &destFolder, const QString &name = {});
+        void removeItem(Item &item);
+
         bool addFolder(const QString &path, QString *error = nullptr);
         bool addFeed(const QString &url, const QString &path, QString *error = nullptr);
         bool moveItem(const QString &itemPath, const QString &destPath
                          , QString *error = nullptr);
-        bool moveItem(Item *item, const QString &destPath, QString *error = nullptr);
         bool removeItem(const QString &itemPath, QString *error = nullptr);
 
+        void refreshItem(qint64 itemId);
+
         QList<Item *> items() const;
+        Item *itemByID(qint64 id) const;
         Item *itemByPath(const QString &path) const;
-        QList<Feed *> feeds() const;
+        QVector<Feed *> feeds() const;
         Feed *feedByURL(const QString &url) const;
 
         Folder *rootFolder() const;
 
     public slots:
-        void refresh();
+        void refreshAll();
 
     signals:
         void processingStateChanged(bool enabled);
@@ -127,35 +134,14 @@ namespace RSS
         void itemAdded(Item *item);
         void itemPathChanged(Item *item);
         void itemAboutToBeRemoved(Item *item);
-        void feedIconLoaded(Feed *feed);
         void feedStateChanged(Feed *feed);
 
-    private slots:
-        void handleItemAboutToBeDestroyed(Item *item);
-        void handleFeedTitleChanged(Feed *feed);
-
     private:
-        QUuid generateUID() const;
-        void load();
-        void loadFolder(const QJsonObject &jsonObj, Folder *folder);
-        void loadLegacy();
-        void store();
-        Folder *prepareItemDest(const QString &path, QString *error);
-        Folder *addSubfolder(const QString &name, Folder *parentFolder);
-        Feed *addFeedToFolder(const QUuid &uid, const QString &url, const QString &name, Folder *parentFolder);
-        void addItem(Item *item, Folder *destFolder);
-
-        static QPointer<Session> m_instance;
+        static QPointer<Manager> m_instance;
 
         bool m_processingEnabled;
-        QThread *m_workingThread;
-        AsyncFileStorage *m_confFileStorage;
-        AsyncFileStorage *m_dataFileStorage;
-        QTimer m_refreshTimer;
         uint m_refreshInterval;
         int m_maxArticlesPerFeed;
-        QHash<QString, Item *> m_itemsByPath;
-        QHash<QUuid, Feed *> m_feedsByUID;
-        QHash<QString, Feed *> m_feedsByURL;
+        Private::Session *m_session;
     };
 }

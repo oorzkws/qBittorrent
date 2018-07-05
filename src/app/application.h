@@ -64,7 +64,7 @@ namespace BitTorrent
 
 namespace RSS
 {
-    class Session;
+    class Manager;
     class AutoDownloader;
 }
 

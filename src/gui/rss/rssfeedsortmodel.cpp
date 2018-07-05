@@ -1,8 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015-2018  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2010  Christophe Dumez <chris@qbittorrent.org>
- * Copyright (C) 2010  Arnaud Demaiziere <arnaud@qbittorrent.org>
+ * Copyright (C) 2018  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,51 +26,23 @@
  * exception statement from your version.
  */
 
-#include "rss_feed.h"
+#include "rssfeedsortmodel.h"
 
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QJsonValue>
+#include "base/rss/rss_article.h"
+#include "rssfeedmodel.h"
 
-#include "base/global.h"
-#include "rss_article.h"
-
-const QString KEY_URL(QStringLiteral("url"));
-const QString KEY_TITLE(QStringLiteral("title"));
-const QString KEY_LASTBUILDDATE(QStringLiteral("lastBuildDate"));
-const QString KEY_ISLOADING(QStringLiteral("isLoading"));
-const QString KEY_HASERROR(QStringLiteral("hasError"));
-const QString KEY_ARTICLES(QStringLiteral("articles"));
-
-using namespace RSS;
-
-Feed::Feed(qint64 id, const QString &url, const QString &path)
-    : Item {id, path}
-    , m_url {url}
+namespace
 {
-}
-
-QString Feed::url() const
-{
-    return m_url;
-}
-
-QJsonValue Feed::toJsonValue(bool withData) const
-{
-    QJsonObject jsonObj;
-    jsonObj.insert(KEY_URL, url());
-
-    if (withData) {
-        jsonObj.insert(KEY_TITLE, title());
-        jsonObj.insert(KEY_LASTBUILDDATE, lastBuildDate());
-        jsonObj.insert(KEY_ISLOADING, isLoading());
-        jsonObj.insert(KEY_HASERROR, hasError());
-
-        QJsonArray jsonArr;
-        for (Article *article : asConst(articles()))
-            jsonArr << article->toJsonObject();
-        jsonObj.insert(KEY_ARTICLES, jsonArr);
+    RSS::Article *getArticlePtr(const QModelIndex &index)
+    {
+        return index.data(RSSFeedModel::ItemPtrRole).value<RSS::Article *>();
     }
+}
 
-    return jsonObj;
+bool RSSFeedSortModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
+{
+    if (sortRole() != Qt::DisplayRole)
+        return QSortFilterProxyModel::lessThan(left, right);
+
+    return (getArticlePtr(left)->date() < getArticlePtr(right)->date());
 }

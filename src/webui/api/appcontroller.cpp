@@ -49,7 +49,7 @@
 #include "base/net/proxyconfigurationmanager.h"
 #include "base/preferences.h"
 #include "base/rss/rss_autodownloader.h"
-#include "base/rss/rss_session.h"
+#include "base/rss/rss_manager.h"
 #include "base/scanfoldersmodel.h"
 #include "base/torrentfileguard.h"
 #include "base/utils/fs.h"
@@ -248,9 +248,9 @@ void AppController::preferencesAction()
     data["dyndns_domain"] = pref->getDynDomainName();
 
     // RSS settings
-    data["rss_refresh_interval"] = static_cast<double>(RSS::Session::instance()->refreshInterval());
-    data["rss_max_articles_per_feed"] = RSS::Session::instance()->maxArticlesPerFeed();
-    data["rss_processing_enabled"] = RSS::Session::instance()->isProcessingEnabled();
+    data["rss_refresh_interval"] = static_cast<double>(RSS::Manager::instance()->refreshInterval());
+    data["rss_max_articles_per_feed"] = RSS::Manager::instance()->maxArticlesPerFeed();
+    data["rss_processing_enabled"] = RSS::Manager::instance()->isProcessingEnabled();
     data["rss_auto_downloading_enabled"] = RSS::AutoDownloader::instance()->isProcessingEnabled();
 
     // Advanced settings
@@ -628,11 +628,11 @@ void AppController::setPreferencesAction()
     pref->apply();
 
     if (hasKey("rss_refresh_interval"))
-        RSS::Session::instance()->setRefreshInterval(it.value().toUInt());
+        RSS::Manager::instance()->setRefreshInterval(it.value().toUInt());
     if (hasKey("rss_max_articles_per_feed"))
-        RSS::Session::instance()->setMaxArticlesPerFeed(it.value().toInt());
+        RSS::Manager::instance()->setMaxArticlesPerFeed(it.value().toInt());
     if (hasKey("rss_processing_enabled"))
-        RSS::Session::instance()->setProcessingEnabled(it.value().toBool());
+        RSS::Manager::instance()->setProcessingEnabled(it.value().toBool());
     if (hasKey("rss_auto_downloading_enabled"))
         RSS::AutoDownloader::instance()->setProcessingEnabled(it.value().toBool());
 

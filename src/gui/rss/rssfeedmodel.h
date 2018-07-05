@@ -1,7 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2010  Christophe Dumez <chris@qbittorrent.org>
+ * Copyright (C) 2018  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,51 +26,50 @@
  * exception statement from your version.
  */
 
-#ifndef FEEDLISTWIDGET_H
-#define FEEDLISTWIDGET_H
+#pragma once
 
-#include <QHash>
-#include <QTreeWidget>
+#include <QAbstractItemModel>
+#include <QModelIndex>
 
 namespace RSS
 {
     class Article;
-    class Feed;
-    class Folder;
     class Item;
 }
 
-class FeedListWidget : public QTreeWidget
+class RSSFeedModel : public QAbstractItemModel
 {
     Q_OBJECT
+    Q_DISABLE_COPY(RSSFeedModel)
 
 public:
-    explicit FeedListWidget(QWidget *parent);
+    enum ItemDataRole
+    {
+        ItemPtrRole = Qt::UserRole
+    };
 
-    QTreeWidgetItem *stickyUnreadItem() const;
-    QList<QTreeWidgetItem *> getAllOpenedFolders(QTreeWidgetItem *parent = nullptr) const;
-    RSS::Item *getRSSItem(QTreeWidgetItem *item) const;
-    QTreeWidgetItem *mapRSSItem(RSS::Item *rssItem) const;
-    QString itemPath(QTreeWidgetItem *item) const;
-    bool isFeed(QTreeWidgetItem *item) const;
-    bool isFolder(QTreeWidgetItem *item) const;
+    explicit RSSFeedModel(RSS::Item *rssItem, QObject *parent = nullptr);
+    ~RSSFeedModel() override;
 
-private slots:
-    void handleItemAdded(RSS::Item *rssItem);
-    void handleFeedStateChanged(RSS::Feed *feed);
-    void handleFeedIconLoaded(RSS::Feed *feed);
-    void handleItemUnreadCountChanged(RSS::Item *rssItem);
-    void handleItemPathChanged(RSS::Item *rssItem);
-    void handleItemAboutToBeRemoved(RSS::Item *rssItem);
+    void setRSSItem(RSS::Item *rssItem);
+
+    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    Qt::ItemFlags flags(const QModelIndex &index) const override;
+
+    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
+    QModelIndex parent(const QModelIndex &index) const override;
 
 private:
-    void dragMoveEvent(QDragMoveEvent *event) override;
-    void dropEvent(QDropEvent *event) override;
-    QTreeWidgetItem *createItem(RSS::Item *rssItem, QTreeWidgetItem *parentItem = nullptr);
-    void fill(QTreeWidgetItem *parent, RSS::Folder *rssParent);
+    QModelIndex index(RSS::Article *rssArticle) const;
 
-    QHash<RSS::Item *, QTreeWidgetItem *> m_rssToTreeItemMapping;
-    QTreeWidgetItem *m_unreadStickyItem;
+    void handleArticleAdded(RSS::Article *rssArticle);
+    void handleArticleRead(RSS::Article *rssArticle);
+    void handleArticleAboutToBeRemoved(RSS::Article *rssArticle);
+
+    void addArticle(RSS::Article *rssArticle);
+
+    RSS::Item *m_rssItem = nullptr;
 };
-
-#endif // FEEDLISTWIDGET_H

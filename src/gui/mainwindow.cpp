@@ -60,7 +60,7 @@
 #include "base/net/downloadmanager.h"
 #include "base/preferences.h"
 #include "base/rss/rss_folder.h"
-#include "base/rss/rss_session.h"
+#include "base/rss/rss_manager.h"
 #include "base/settingsstorage.h"
 #include "base/utils/foreignapps.h"
 #include "base/utils/fs.h"
@@ -672,7 +672,7 @@ void MainWindow::displayRSSTab(bool enable)
 #ifdef Q_OS_MAC
             m_tabs->addTab(m_rssWidget, tr("RSS (%1)").arg(RSS::Session::instance()->rootFolder()->unreadCount()));
 #else
-            const int indexTab = m_tabs->addTab(m_rssWidget, tr("RSS (%1)").arg(RSS::Session::instance()->rootFolder()->unreadCount()));
+            const int indexTab = m_tabs->addTab(m_rssWidget, tr("RSS (%1)").arg(RSS::Manager::instance()->rootFolder()->unreadCount()));
             m_tabs->setTabIcon(indexTab, UIThemeManager::instance()->getIcon("application-rss+xml"));
 #endif
         }

@@ -35,7 +35,7 @@
 #include "base/rss/rss_autodownloader.h"
 #include "base/rss/rss_autodownloadrule.h"
 #include "base/rss/rss_folder.h"
-#include "base/rss/rss_session.h"
+#include "base/rss/rss_manager.h"
 #include "base/utils/string.h"
 #include "apierror.h"
 
@@ -47,7 +47,7 @@ void RSSController::addFolderAction()
 
     const QString path = params()["path"].trimmed();
     QString error;
-    if (!RSS::Session::instance()->addFolder(path, &error))
+    if (!RSS::Manager::instance()->addFolder(path, &error))
         throw APIError(APIErrorType::Conflict, error);
 }
 
@@ -58,7 +58,7 @@ void RSSController::addFeedAction()
     const QString url = params()["url"].trimmed();
     const QString path = params()["path"].trimmed();
     QString error;
-    if (!RSS::Session::instance()->addFeed(url, (path.isEmpty() ? url : path), &error))
+    if (!RSS::Manager::instance()->addFeed(url, path, &error))
         throw APIError(APIErrorType::Conflict, error);
 }
 
@@ -68,7 +68,7 @@ void RSSController::removeItemAction()
 
     const QString path = params()["path"].trimmed();
     QString error;
-    if (!RSS::Session::instance()->removeItem(path, &error))
+    if (!RSS::Manager::instance()->removeItem(path, &error))
         throw APIError(APIErrorType::Conflict, error);
 }
 
@@ -79,7 +79,7 @@ void RSSController::moveItemAction()
     const QString itemPath = params()["itemPath"].trimmed();
     const QString destPath = params()["destPath"].trimmed();
     QString error;
-    if (!RSS::Session::instance()->moveItem(itemPath, destPath, &error))
+    if (!RSS::Manager::instance()->moveItem(itemPath, destPath, &error))
         throw APIError(APIErrorType::Conflict, error);
 }
 
@@ -87,7 +87,7 @@ void RSSController::itemsAction()
 {
     const bool withData {parseBool(params()["withData"], false)};
 
-    const auto jsonVal = RSS::Session::instance()->rootFolder()->toJsonValue(withData);
+    const auto jsonVal = RSS::Manager::instance()->rootFolder()->toJsonValue(withData);
     setResult(jsonVal.toObject());
 }
 

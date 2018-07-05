@@ -43,6 +43,7 @@ namespace RSS
     {
         struct ParsingResult
         {
+            QString url;
             QString error;
             QString lastBuildDate;
             QString title;
@@ -52,16 +53,18 @@ namespace RSS
         class Parser : public QObject
         {
             Q_OBJECT
+            Q_DISABLE_COPY(Parser)
 
         public:
-            explicit Parser(QString lastBuildDate);
-            void parse(const QByteArray &feedData);
+            Parser() = default;
+
+        public slots:
+            void parse(const QString &url, const QByteArray &feedData, const QString &lastBuildDate);
 
         signals:
             void finished(const RSS::Private::ParsingResult &result);
 
         private:
-            Q_INVOKABLE void parse_impl(const QByteArray &feedData);
             void parseRssArticle(QXmlStreamReader &xml);
             void parseRSSChannel(QXmlStreamReader &xml);
             void parseAtomArticle(QXmlStreamReader &xml);

@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2017-2018  Vladimir Golovnev <glassez@yandex.ru>
  * Copyright (C) 2010  Christophe Dumez <chris@qbittorrent.org>
  * Copyright (C) 2010  Arnaud Demaiziere <arnaud@qbittorrent.org>
  *
@@ -40,16 +40,14 @@
 
 using namespace RSS;
 
-Folder::Folder(const QString &path)
-    : Item(path)
+Folder::Folder(qint64 id, const QString &path)
+    : Item(id, path)
 {
 }
 
 Folder::~Folder()
 {
-    emit aboutToBeDestroyed(this);
-
-    for (auto item : asConst(items()))
+    for (auto *item : asConst(items()))
         delete item;
 }
 
@@ -84,12 +82,6 @@ void Folder::markAsRead()
         item->markAsRead();
 }
 
-void Folder::refresh()
-{
-    for (Item *item : asConst(items()))
-        item->refresh();
-}
-
 QList<Item *> Folder::items() const
 {
     return m_items;
@@ -109,18 +101,13 @@ void Folder::handleItemUnreadCountChanged()
     emit unreadCountChanged(this);
 }
 
-void Folder::cleanup()
-{
-    for (Item *item : asConst(items()))
-        item->cleanup();
-}
-
 void Folder::addItem(Item *item)
 {
     Q_ASSERT(item);
     Q_ASSERT(!m_items.contains(item));
 
     m_items.append(item);
+    item->m_parent = this;
     connect(item, &Item::newArticle, this, &Item::newArticle);
     connect(item, &Item::articleRead, this, &Item::articleRead);
     connect(item, &Item::articleAboutToBeRemoved, this, &Item::articleAboutToBeRemoved);
@@ -142,6 +129,7 @@ void Folder::removeItem(Item *item)
 
     item->disconnect(this);
     m_items.removeOne(item);
+    item->m_parent = nullptr;
     if (item->unreadCount() > 0)
         emit unreadCountChanged(this);
 }

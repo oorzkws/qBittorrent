@@ -44,13 +44,13 @@ namespace
         auto varHash = jsonObj.toVariantHash();
         // JSON object store DateTime as string so we need to convert it
         varHash[Article::KeyDate] =
-                QDateTime::fromString(jsonObj.value(Article::KeyDate).toString(), Qt::RFC2822Date);
+                QDateTime::fromString(jsonObj.value(Article::KeyDate).toString(), Qt::ISODate);
 
         return varHash;
     }
 }
 
-const QString Article::KeyId(QStringLiteral("id"));
+const QString Article::KeyLocalId(QStringLiteral("localId"));
 const QString Article::KeyDate(QStringLiteral("date"));
 const QString Article::KeyTitle(QStringLiteral("title"));
 const QString Article::KeyAuthor(QStringLiteral("author"));
@@ -62,7 +62,7 @@ const QString Article::KeyIsRead(QStringLiteral("isRead"));
 Article::Article(Feed *feed, const QVariantHash &varHash)
     : QObject(feed)
     , m_feed(feed)
-    , m_guid(varHash.value(KeyId).toString())
+    , m_localId(varHash.value(KeyLocalId).toString())
     , m_date(varHash.value(KeyDate).toDateTime())
     , m_title(varHash.value(KeyTitle).toString())
     , m_author(varHash.value(KeyAuthor).toString())
@@ -79,9 +79,9 @@ Article::Article(Feed *feed, const QJsonObject &jsonObj)
 {
 }
 
-QString Article::guid() const
+QString Article::localId() const
 {
-    return m_guid;
+    return m_localId;
 }
 
 QDateTime Article::date() const

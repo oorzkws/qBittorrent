@@ -53,7 +53,7 @@
 #include "rss_autodownloadrule.h"
 #include "rss_feed.h"
 #include "rss_folder.h"
-#include "rss_session.h"
+#include "rss_manager.h"
 
 struct ProcessingJob
 {
@@ -61,10 +61,10 @@ struct ProcessingJob
     QVariantHash articleData;
 };
 
-const QString ConfFolderName(QStringLiteral("rss"));
+const QString CONF_FOLDER(QStringLiteral("rss"));
 const QString RulesFileName(QStringLiteral("download_rules.json"));
 
-const QString SettingsKey_ProcessingEnabled(QStringLiteral("RSS/AutoDownloader/EnableProcessing"));
+const QString KEY_PROCESSING_ENABLED(QStringLiteral("RSS/AutoDownloader/EnableProcessing"));
 const QString SettingsKey_SmartEpisodeFilter(QStringLiteral("RSS/AutoDownloader/SmartEpisodeFilter"));
 const QString SettingsKey_DownloadRepacks(QStringLiteral("RSS/AutoDownloader/DownloadRepacks"));
 
@@ -104,7 +104,7 @@ QString computeSmartFilterRegex(const QStringList &filters)
 }
 
 AutoDownloader::AutoDownloader()
-    : m_processingEnabled(SettingsStorage::instance()->loadValue(SettingsKey_ProcessingEnabled, false).toBool())
+    : m_processingEnabled(SettingsStorage::instance()->loadValue(KEY_PROCESSING_ENABLED, false).toBool())
     , m_processingTimer(new QTimer(this))
     , m_ioThread(new QThread(this))
 {
@@ -112,7 +112,7 @@ AutoDownloader::AutoDownloader()
     m_instance = this;
 
     m_fileStorage = new AsyncFileStorage(
-                Utils::Fs::expandPathAbs(specialFolderLocation(SpecialFolder::Config) + ConfFolderName));
+                Utils::Fs::expandPathAbs(specialFolderLocation(SpecialFolder::Config) + CONF_FOLDER));
     if (!m_fileStorage)
         throw std::runtime_error("Directory for RSS AutoDownloader data is unavailable.");
 
@@ -336,8 +336,8 @@ void AutoDownloader::handleTorrentDownloadFinished(const QString &url)
     const auto job = m_waitingJobs.take(url);
     if (!job) return;
 
-    if (Feed *feed = Session::instance()->feedByURL(job->feedURL))
-        if (Article *article = feed->articleByGUID(job->articleData.value(Article::KeyId).toString()))
+    if (Feed *feed = Manager::instance()->feedByURL(job->feedURL))
+        if (Article *article = feed->articleByGUID(job->articleData.value(Article::KeyLocalId).toString()))
             article->markAsRead();
 }
 
@@ -391,8 +391,8 @@ void AutoDownloader::processJob(const QSharedPointer<ProcessingJob> &job)
         BitTorrent::Session::instance()->addTorrent(torrentURL, params);
 
         if (BitTorrent::MagnetUri(torrentURL).isValid()) {
-            if (Feed *feed = Session::instance()->feedByURL(job->feedURL)) {
-                if (Article *article = feed->articleByGUID(job->articleData.value(Article::KeyId).toString()))
+            if (Feed *feed = Manager::instance()->feedByURL(job->feedURL)) {
+                if (Article *article = feed->articleByGUID(job->articleData.value(Article::KeyLocalId).toString()))
                     article->markAsRead();
             }
         }
@@ -473,7 +473,7 @@ void AutoDownloader::resetProcessingQueue()
     m_processingQueue.clear();
     if (!m_processingEnabled) return;
 
-    for (Article *article : asConst(Session::instance()->rootFolder()->articles())) {
+    for (Article *article : asConst(Manager::instance()->rootFolder()->articles())) {
         if (!article->isRead() && !article->torrentUrl().isEmpty())
             addJobForArticle(article);
     }
@@ -482,20 +482,20 @@ void AutoDownloader::resetProcessingQueue()
 void AutoDownloader::startProcessing()
 {
     resetProcessingQueue();
-    connect(Session::instance()->rootFolder(), &Folder::newArticle, this, &AutoDownloader::handleNewArticle);
+    connect(Manager::instance()->rootFolder(), &Folder::newArticle, this, &AutoDownloader::handleNewArticle);
 }
 
 void AutoDownloader::setProcessingEnabled(const bool enabled)
 {
     if (m_processingEnabled != enabled) {
         m_processingEnabled = enabled;
-        SettingsStorage::instance()->storeValue(SettingsKey_ProcessingEnabled, m_processingEnabled);
+        SettingsStorage::instance()->storeValue(KEY_PROCESSING_ENABLED, m_processingEnabled);
         if (m_processingEnabled) {
             startProcessing();
         }
         else {
             m_processingQueue.clear();
-            disconnect(Session::instance()->rootFolder(), &Folder::newArticle, this, &AutoDownloader::handleNewArticle);
+            disconnect(Manager::instance()->rootFolder(), &Folder::newArticle, this, &AutoDownloader::handleNewArticle);
         }
 
         emit processingStateChanged(m_processingEnabled);

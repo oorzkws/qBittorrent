@@ -49,7 +49,7 @@
 #include "base/net/proxyconfigurationmanager.h"
 #include "base/preferences.h"
 #include "base/rss/rss_autodownloader.h"
-#include "base/rss/rss_session.h"
+#include "base/rss/rss_manager.h"
 #include "base/scanfoldersmodel.h"
 #include "base/torrentfileguard.h"
 #include "base/unicodestrings.h"
@@ -649,9 +649,9 @@ void OptionsDialog::saveOptions()
     app->setFileLoggerEnabled(m_ui->checkFileLog->isChecked());
     // End General preferences
 
-    RSS::Session::instance()->setRefreshInterval(m_ui->spinRSSRefreshInterval->value());
-    RSS::Session::instance()->setMaxArticlesPerFeed(m_ui->spinRSSMaxArticlesPerFeed->value());
-    RSS::Session::instance()->setProcessingEnabled(m_ui->checkRSSEnable->isChecked());
+    RSS::Manager::instance()->setRefreshInterval(m_ui->spinRSSRefreshInterval->value());
+    RSS::Manager::instance()->setMaxArticlesPerFeed(m_ui->spinRSSMaxArticlesPerFeed->value());
+    RSS::Manager::instance()->setProcessingEnabled(m_ui->checkRSSEnable->isChecked());
     RSS::AutoDownloader::instance()->setProcessingEnabled(m_ui->checkRSSAutoDownloaderEnable->isChecked());
     RSS::AutoDownloader::instance()->setSmartEpisodeFilters(m_ui->textSmartEpisodeFilters->toPlainText().split('\n', QString::SplitBehavior::SkipEmptyParts));
     RSS::AutoDownloader::instance()->setDownloadRepacks(m_ui->checkSmartFilterDownloadRepacks->isChecked());
@@ -885,13 +885,13 @@ void OptionsDialog::loadOptions()
     m_ui->comboFileLogAgeType->setCurrentIndex(app->fileLoggerAgeType());
     // End General preferences
 
-    m_ui->checkRSSEnable->setChecked(RSS::Session::instance()->isProcessingEnabled());
+    m_ui->checkRSSEnable->setChecked(RSS::Manager::instance()->isProcessingEnabled());
     m_ui->checkRSSAutoDownloaderEnable->setChecked(RSS::AutoDownloader::instance()->isProcessingEnabled());
     m_ui->textSmartEpisodeFilters->setPlainText(RSS::AutoDownloader::instance()->smartEpisodeFilters().join('\n'));
     m_ui->checkSmartFilterDownloadRepacks->setChecked(RSS::AutoDownloader::instance()->downloadRepacks());
 
-    m_ui->spinRSSRefreshInterval->setValue(RSS::Session::instance()->refreshInterval());
-    m_ui->spinRSSMaxArticlesPerFeed->setValue(RSS::Session::instance()->maxArticlesPerFeed());
+    m_ui->spinRSSRefreshInterval->setValue(RSS::Manager::instance()->refreshInterval());
+    m_ui->spinRSSMaxArticlesPerFeed->setValue(RSS::Manager::instance()->maxArticlesPerFeed());
 
     const auto *session = BitTorrent::Session::instance();
 

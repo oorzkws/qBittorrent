@@ -46,7 +46,7 @@
 #include "base/rss/rss_autodownloader.h"
 #include "base/rss/rss_feed.h"
 #include "base/rss/rss_folder.h"
-#include "base/rss/rss_session.h"
+#include "base/rss/rss_manager.h"
 #include "base/utils/fs.h"
 #include "base/utils/string.h"
 #include "autoexpandabledialog.h"
@@ -179,7 +179,7 @@ void AutomatedRssDownloader::loadFeedList()
 {
     const QSignalBlocker feedListSignalBlocker(m_ui->listFeeds);
 
-    for (const auto feed : asConst(RSS::Session::instance()->feeds())) {
+    for (const auto feed : asConst(RSS::Manager::instance()->feeds())) {
         QListWidgetItem *item = new QListWidgetItem(feed->name(), m_ui->listFeeds);
         item->setData(Qt::UserRole, feed->url());
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsTristate);
@@ -574,7 +574,7 @@ void AutomatedRssDownloader::updateMatchingArticles()
                                        ? m_currentRule
                                        : RSS::AutoDownloader::instance()->ruleByName(ruleItem->text()));
         for (const QString &feedURL : asConst(rule.feedURLs())) {
-            auto feed = RSS::Session::instance()->feedByURL(feedURL);
+            auto *feed = RSS::Manager::instance()->feedByURL(feedURL);
             if (!feed) continue; // feed doesn't exist
 
             QStringList matchingArticles;
