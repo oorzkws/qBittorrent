@@ -1,5 +1,6 @@
 HEADERS += \
     $$PWD/algorithm.h \
+    $$PWD/applicationinstancemanager.h \
     $$PWD/asyncfilestorage.h \
     $$PWD/bittorrent/addtorrentparams.h  \
     $$PWD/bittorrent/cachestatus.h \
@@ -19,7 +20,9 @@ HEADERS += \
     $$PWD/bittorrent/torrentinfo.h \
     $$PWD/bittorrent/tracker.h \
     $$PWD/bittorrent/trackerentry.h \
+    $$PWD/cmdoptions.h \
     $$PWD/exceptions.h \
+    $$PWD/filelogger.h \
     $$PWD/filesystemwatcher.h \
     $$PWD/global.h \
     $$PWD/http/connection.h \
@@ -45,6 +48,10 @@ HEADERS += \
     $$PWD/preferences.h \
     $$PWD/private/profile_p.h \
     $$PWD/profile.h \
+    $$PWD/qbittorrent.h \
+    $$PWD/qbittorrentimpl.h \
+    $$PWD/qtlocalpeer/qtlocalpeer.h \
+    $$PWD/qtlocalpeer/qtlockedfile.h \
     $$PWD/rss/private/rss_parser.h \
     $$PWD/rss/rss_article.h \
     $$PWD/rss/rss_autodownloader.h \
@@ -64,6 +71,7 @@ HEADERS += \
     $$PWD/tristatebool.h \
     $$PWD/types.h \
     $$PWD/unicodestrings.h \
+    $$PWD/upgrade.h \
     $$PWD/utils/bytearray.h \
     $$PWD/utils/foreignapps.h \
     $$PWD/utils/fs.h \
@@ -76,6 +84,7 @@ HEADERS += \
     $$PWD/utils/version.h
 
 SOURCES += \
+    $$PWD/applicationinstancemanager.cpp \
     $$PWD/asyncfilestorage.cpp \
     $$PWD/bittorrent/filepriority.cpp \
     $$PWD/bittorrent/infohash.cpp \
@@ -92,7 +101,9 @@ SOURCES += \
     $$PWD/bittorrent/torrentinfo.cpp \
     $$PWD/bittorrent/tracker.cpp \
     $$PWD/bittorrent/trackerentry.cpp \
+    $$PWD/cmdoptions.cpp \
     $$PWD/exceptions.cpp \
+    $$PWD/filelogger.cpp \
     $$PWD/filesystemwatcher.cpp \
     $$PWD/http/connection.cpp \
     $$PWD/http/httperror.cpp \
@@ -114,6 +125,12 @@ SOURCES += \
     $$PWD/preferences.cpp \
     $$PWD/private/profile_p.cpp \
     $$PWD/profile.cpp \
+    $$PWD/qbittorrent.cpp \
+    $$PWD/qbittorrentimpl.cpp \
+    $$PWD/qtlocalpeer/qtlocalpeer.cpp \
+    $$PWD/qtlocalpeer/qtlockedfile.cpp \
+    $$PWD/qtlocalpeer/qtlockedfile_unix.cpp \
+    $$PWD/qtlocalpeer/qtlockedfile_win.cpp \
     $$PWD/rss/private/rss_parser.cpp \
     $$PWD/rss/rss_article.cpp \
     $$PWD/rss/rss_autodownloader.cpp \
@@ -130,6 +147,7 @@ SOURCES += \
     $$PWD/torrentfileguard.cpp \
     $$PWD/torrentfilter.cpp \
     $$PWD/tristatebool.cpp \
+    $$PWD/upgrade.cpp \
     $$PWD/utils/bytearray.cpp \
     $$PWD/utils/foreignapps.cpp \
     $$PWD/utils/fs.cpp \
@@ -139,3 +157,8 @@ SOURCES += \
     $$PWD/utils/password.cpp \
     $$PWD/utils/random.cpp \
     $$PWD/utils/string.cpp
+    
+stacktrace {
+    unix: HEADERS += $$PWD/stacktrace.h
+    else: HEADERS += $$PWD/stacktrace_win.h
+}

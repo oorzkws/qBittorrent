@@ -32,7 +32,6 @@
 
 #include <memory>
 
-#include <QScopedPointer>
 #include <QSettings>
 #include <QString>
 
@@ -57,6 +56,10 @@ enum class SpecialFolder
 class Profile
 {
 public:
+    Profile(const QString &rootProfilePath, const QString &configurationName
+            , bool convertPathsToProfileRelative);
+    ~Profile();
+
     QString location(SpecialFolder folder) const;
     SettingsPtr applicationSettings(const QString &name) const;
 
@@ -67,25 +70,11 @@ public:
     QString toPortablePath(const QString &absolutePath) const;
     QString fromPortablePath(const QString &portablePath) const;
 
-    static const Profile &instance();
-
 private:
-    Profile(Private::Profile *impl, Private::PathConverter *pathConverter);
-    ~Profile();
-
-    friend class ::Application;
-    static void initialize(const QString &rootProfilePath, const QString &configurationName,
-                                             bool convertPathsToProfileRelative);
     void ensureDirectoryExists(SpecialFolder folder);
 
-    QScopedPointer<Private::Profile> m_profileImpl;
-    QScopedPointer<Private::PathConverter> m_pathConverterImpl;
-    static Profile *m_instance;
+    Private::Profile *m_profileImpl;
+    Private::PathConverter *m_pathConverterImpl;
 };
-
-inline QString specialFolderLocation(SpecialFolder folder)
-{
-    return Profile::instance().location(folder);
-}
 
 #endif // QBT_PROFILE_H

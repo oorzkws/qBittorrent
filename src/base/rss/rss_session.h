@@ -82,12 +82,10 @@ namespace RSS
         Q_OBJECT
         Q_DISABLE_COPY(Session)
 
-        friend class ::Application;
-
+    public:
         Session();
         ~Session() override;
 
-    public:
         static Session *instance();
 
         bool isProcessingEnabled() const;

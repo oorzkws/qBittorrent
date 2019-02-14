@@ -42,12 +42,11 @@ namespace Ui
 class ShutdownConfirmDialog : public QDialog
 {
     Q_OBJECT
+    Q_DISABLE_COPY(ShutdownConfirmDialog)
 
 public:
-    ShutdownConfirmDialog(QWidget *parent, const ShutdownDialogAction &action);
-    ~ShutdownConfirmDialog();
-
-    static bool askForConfirmation(QWidget *parent, const ShutdownDialogAction &action);
+    ShutdownConfirmDialog(QWidget *parent, const ShutdownAction &action);
+    ~ShutdownConfirmDialog() override;
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -65,7 +64,7 @@ private:
     Ui::ShutdownConfirmDialog *m_ui;
     QTimer m_timer;
     int m_timeout;
-    ShutdownDialogAction m_action;
+    ShutdownAction m_action;
     QString m_msg;
 };
 

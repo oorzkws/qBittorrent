@@ -36,12 +36,12 @@ class QIcon;
 
 class GuiIconProvider : public IconProvider
 {
-    Q_DISABLE_COPY(GuiIconProvider)
     Q_OBJECT
+    Q_DISABLE_COPY(GuiIconProvider)
 
 public:
-    static void initInstance();
-    static GuiIconProvider *instance();
+    explicit GuiIconProvider(QObject *parent = nullptr);
+    ~GuiIconProvider() override;
 
     QIcon getIcon(const QString &iconId) const;
     QIcon getIcon(const QString &iconId, const QString &fallback) const;
@@ -52,9 +52,6 @@ private slots:
     void configure();
 
 private:
-    explicit GuiIconProvider(QObject *parent = nullptr);
-    ~GuiIconProvider() override;
-
 #if (defined(Q_OS_UNIX) && !defined(Q_OS_MAC))
     bool m_useSystemTheme;
 #endif

@@ -64,17 +64,15 @@ namespace RSS
         Q_OBJECT
         Q_DISABLE_COPY(AutoDownloader)
 
-        friend class ::Application;
-
-        AutoDownloader();
-        ~AutoDownloader() override;
-
     public:
         enum class RulesFileFormat
         {
             Legacy,
             JSON
         };
+
+        AutoDownloader();
+        ~AutoDownloader() override;
 
         static AutoDownloader *instance();
 

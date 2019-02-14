@@ -38,17 +38,10 @@ class IconProvider : public QObject
     Q_DISABLE_COPY(IconProvider)
 
 public:
-    static void initInstance();
-    static void freeInstance();
-    static IconProvider *instance();
+    explicit IconProvider(QObject *parent = nullptr);
+    ~IconProvider() override;
 
     virtual QString getIconPath(const QString &iconId) const;
-
-protected:
-    explicit IconProvider(QObject *parent = nullptr);
-    ~IconProvider();
-
-    static IconProvider *m_instance;
 };
 
 #endif // ICONPROVIDER_H

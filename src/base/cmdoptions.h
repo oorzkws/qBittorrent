@@ -33,6 +33,7 @@
 
 #include <stdexcept>
 
+#include <QCoreApplication>
 #include <QString>
 #include <QStringList>
 
@@ -40,15 +41,17 @@
 
 class QProcessEnvironment;
 
-struct QBtCommandLineParameters
+struct CommandLineParameters
 {
+    QString progName;
     bool showHelp, relativeFastresumePaths, portableMode, skipChecking, sequential, firstLastPiecePriority;
 #ifndef Q_OS_WIN
     bool showVersion;
 #endif
 #ifndef DISABLE_GUI
     bool noSplash;
-#else
+#endif
+#ifdef HAS_DAEMON_MODE
     bool shouldDaemonize;
 #endif
     int webUiPort;
@@ -56,8 +59,14 @@ struct QBtCommandLineParameters
     QStringList torrents;
     QString profileDir, configurationName, savePath, category, unknownParameter;
 
-    explicit QBtCommandLineParameters(const QProcessEnvironment&);
+    static CommandLineParameters parse(const QStringList &args);
+
+    QString makeUsage() const;
     QStringList paramList() const;
+
+private:
+    Q_DECLARE_TR_FUNCTIONS(CommandLineParameters)
+    CommandLineParameters(const QProcessEnvironment &);
 };
 
 class CommandLineParameterError : public std::runtime_error
@@ -69,8 +78,5 @@ public:
 private:
     const QString m_messageForUser;
 };
-
-QBtCommandLineParameters parseCommandLine(const QStringList &args);
-void displayUsage(const QString &prgName);
 
 #endif // APP_OPTIONS_H

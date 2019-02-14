@@ -109,7 +109,7 @@ namespace
     }
 }
 
-void Utils::Misc::shutdownComputer(const ShutdownDialogAction &action)
+void Utils::Misc::shutdownComputer(const ShutdownAction &action)
 {
 #if defined(Q_OS_WIN)
     HANDLE hToken;            // handle to process token
@@ -136,11 +136,11 @@ void Utils::Misc::shutdownComputer(const ShutdownDialogAction &action)
     using PSETSUSPENDSTATE = BOOLEAN (WINAPI *)(BOOLEAN, BOOLEAN, BOOLEAN);
     const auto setSuspendState = Utils::Misc::loadWinAPI<PSETSUSPENDSTATE>("PowrProf.dll", "SetSuspendState");
 
-    if (action == ShutdownDialogAction::Suspend) {
+    if (action == ShutdownAction::Suspend) {
         if (setSuspendState)
             setSuspendState(false, false, false);
     }
-    else if (action == ShutdownDialogAction::Hibernate) {
+    else if (action == ShutdownAction::Hibernate) {
         if (setSuspendState)
             setSuspendState(true, false, false);
     }

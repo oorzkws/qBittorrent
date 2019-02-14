@@ -1,6 +1,7 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2015, 2019  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2006  Christophe Dumez
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,21 +27,47 @@
  * exception statement from your version.
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
 
-#include <QMap>
+#include <QApplication>
+#include "base/qbittorrent.h"
 
-const qlonglong MAX_ETA = 8640000;
+class MainWindow;
 
-enum class ShutdownAction
+class QBittorrentGUIImpl final : public QBittorrent
 {
-    Exit,
-    Shutdown,
-    Suspend,
-    Hibernate
+    Q_OBJECT
+    Q_DISABLE_COPY(QBittorrentGUIImpl)
+
+public:
+    QBittorrentGUIImpl(QApplication &app);
+    ~QBittorrentGUIImpl() override;
+
+    MainWindow *mainWindow();
+
+    void addTorrent(const QString &source, const BitTorrent::AddTorrentParams &torrentParams) override;
+
+private slots:
+#ifdef Q_OS_WIN
+    void shutdownCleanup(QSessionManager &manager);
+#endif
+
+private:
+    bool createComponents() override;
+    bool confirmShutdown() const override;
+    void showStartupInfo() const override;
+    void showErrorMessage(const QString &message) const override;
+    void activate() const override;
+    bool userAgreesWithLegalNotice() override;
+#ifdef Q_OS_WIN
+    void displayUsage() const override;
+#endif
+    IconProvider *createIconProvider() override;
+#ifndef DISABLE_WEBUI
+    virtual WebUI *createWebUI() override;
+#endif
+    void beginCleanup() override;
+    void endCleanup() override;
+
+    MainWindow *m_window;
 };
-
-typedef QMap<QString, QString> QStringMap;
-
-#endif // TYPES_H

@@ -35,6 +35,7 @@ mainwindow.h
 optionsdialog.h
 previewlistdelegate.h
 previewselectdialog.h
+qbittorrentguiimpl.h
 raisedmessagebox.h
 scanfoldersdelegate.h
 shutdownconfirmdialog.h
@@ -80,6 +81,7 @@ loglistwidget.cpp
 mainwindow.cpp
 optionsdialog.cpp
 previewselectdialog.cpp
+qbittorrentguiimpl.cpp
 raisedmessagebox.cpp
 scanfoldersdelegate.cpp
 shutdownconfirmdialog.cpp
@@ -125,6 +127,12 @@ torrentcategorydialog.ui
 torrentcreatordialog.ui
 updownratiodialog.ui
 )
+
+if (STACKTRACE)
+    if (NOT UNIX)
+        target_sources(qBittorrent PRIVATE stacktracedialog.h stacktracedialog.ui)
+    endif (NOT UNIX)
+endif (STACKTRACE)
 
 target_link_libraries(qbt_gui
     PRIVATE

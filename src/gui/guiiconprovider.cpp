@@ -41,24 +41,13 @@
 #include "base/utils/fs.h"
 
 GuiIconProvider::GuiIconProvider(QObject *parent)
-    : IconProvider(parent)
+    : IconProvider {parent}
 {
     configure();
     connect(Preferences::instance(), &Preferences::changed, this, &GuiIconProvider::configure);
 }
 
 GuiIconProvider::~GuiIconProvider() = default;
-
-void GuiIconProvider::initInstance()
-{
-    if (!m_instance)
-        m_instance = new GuiIconProvider;
-}
-
-GuiIconProvider *GuiIconProvider::instance()
-{
-    return static_cast<GuiIconProvider *>(m_instance);
-}
 
 QIcon GuiIconProvider::getIcon(const QString &iconId) const
 {

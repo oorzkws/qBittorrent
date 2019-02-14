@@ -31,6 +31,7 @@
 
 #include <csignal>
 #include <cstdlib>
+#include <memory>
 
 #if !defined Q_OS_WIN && !defined Q_OS_HAIKU
 #include <unistd.h>
@@ -42,6 +43,7 @@
 
 #ifndef DISABLE_GUI
 // GUI-only includes
+#include <QApplication>
 #include <QFont>
 #include <QMessageBox>
 #include <QPainter>
@@ -55,9 +57,13 @@
 Q_IMPORT_PLUGIN(QICOPlugin)
 #endif // QBT_STATIC_QT
 
+#include "gui/qbittorrentguiimpl.h"
+
 #else
 // NoGUI-only includes
 #include <cstdio>
+#include <QCoreApplication>
+#include "base/qbittorrentimpl.h"
 #endif // DISABLE_GUI
 
 #ifdef STACKTRACE
@@ -68,13 +74,6 @@ Q_IMPORT_PLUGIN(QICOPlugin)
 #include "stacktracedialog.h"
 #endif // Q_OS_UNIX
 #endif //STACKTRACE
-
-#include "base/preferences.h"
-#include "base/profile.h"
-#include "base/utils/misc.h"
-#include "application.h"
-#include "cmdoptions.h"
-#include "upgrade.h"
 
 // Signal handlers
 void sigNormalHandler(int signum);
@@ -100,8 +99,6 @@ const char *const sysSigName[] = {
 void reportToUser(const char *str);
 #endif
 
-void displayVersion();
-bool userAgreesWithLegalNotice();
 void displayBadArgMessage(const QString &message);
 
 #if !defined(DISABLE_GUI)
@@ -111,68 +108,29 @@ void showSplashScreen();
 // Main
 int main(int argc, char *argv[])
 {
-    // We must save it here because QApplication constructor may change it
-    bool isOneArg = (argc == 2);
+#ifndef DISABLE_GUI
+    QApplication app {argc, argv};
+    std::unique_ptr<QBittorrent> qBittorrent = std::unique_ptr<QBittorrent>(new QBittorrentGUIImpl {app});
+#else
+    QCoreApplication app {argc, argv};
+    std::unique_ptr<QBittorrent> qBittorrent = std::unique_ptr<QBittorrent>(new QBittorrentImpl {app});
+#endif
 
     try {
-        // Create Application
-        const QString appId = QLatin1String("qBittorrent-") + Utils::Misc::getUserIDString();
-        QScopedPointer<Application> app(new Application(appId, argc, argv));
-
-        const QBtCommandLineParameters params = app->commandLineArgs();
-
-        if (!params.unknownParameter.isEmpty()) {
-            throw CommandLineParameterError(QObject::tr("%1 is an unknown command line parameter.",
-                                                        "--random-parameter is an unknown command line parameter.")
-                                                        .arg(params.unknownParameter));
-        }
-#ifndef Q_OS_WIN
-        if (params.showVersion) {
-            if (isOneArg) {
-                displayVersion();
-                return EXIT_SUCCESS;
-            }
-            throw CommandLineParameterError(QObject::tr("%1 must be the single command line parameter.")
-                                     .arg(QLatin1String("-v (or --version)")));
-        }
-#endif
-        if (params.showHelp) {
-            if (isOneArg) {
-                displayUsage(argv[0]);
-                return EXIT_SUCCESS;
-            }
-            throw CommandLineParameterError(QObject::tr("%1 must be the single command line parameter.")
-                                 .arg(QLatin1String("-h (or --help)")));
-        }
-
-        // Set environment variable
-        if (!qputenv("QBITTORRENT", QBT_VERSION))
-            fprintf(stderr, "Couldn't set environment variable...\n");
-
-#ifndef DISABLE_GUI
-        if (!userAgreesWithLegalNotice())
-            return EXIT_SUCCESS;
-#else
-        if (!params.shouldDaemonize
-            && isatty(fileno(stdin))
-            && isatty(fileno(stdout))
-            && !userAgreesWithLegalNotice())
-            return EXIT_SUCCESS;
-#endif
-
         // Check if qBittorrent is already running for this user
-        if (app->isRunning()) {
+        if (!instanceManager->isFirstInstance()) {
 #ifdef DISABLE_GUI
             if (params.shouldDaemonize) {
-                throw CommandLineParameterError(QObject::tr("You cannot use %1: qBittorrent is already running for this user.")
-                                     .arg(QLatin1String("-d (or --daemon)")));
+                throw CommandLineParameterError {
+                    app.translate("main", "You cannot use %1: qBittorrent is already running for this user.")
+                            .arg(QLatin1String {"-d (or --daemon)"})};
             }
             else
 #endif
             qDebug("qBittorrent is already running for this user.");
 
             QThread::msleep(300);
-            app->sendParams(params.paramList());
+            instanceManager->sendMessage(params.paramList().join(PARAMS_SEPARATOR));
 
             return EXIT_SUCCESS;
         }
@@ -192,7 +150,7 @@ int main(int argc, char *argv[])
         qputenv("QT_BEARER_POLL_TIMEOUT", QByteArray::number(-1));
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
         // this is the default in Qt6
-        app->setAttribute(Qt::AA_DisableWindowContextHelpButton);
+        app.setAttribute(Qt::AA_DisableWindowContextHelpButton);
 #endif
 #endif // Q_OS_WIN
 
@@ -205,7 +163,7 @@ int main(int argc, char *argv[])
         qputenv("PATH", path.constData());
 
         // On OS X the standard is to not show icons in the menus
-        app->setAttribute(Qt::AA_DontShowIconsInMenus);
+        app.setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
 
 #ifndef DISABLE_GUI
@@ -217,10 +175,10 @@ int main(int argc, char *argv[])
 #endif
 #ifdef DISABLE_GUI
         if (params.shouldDaemonize) {
-            app.reset(); // Destroy current application
+            instanceManager.reset(); // Destroy current application instance manager
             if (daemon(1, 0) == 0) {
-                app.reset(new Application(appId, argc, argv));
-                if (app->isRunning()) {
+                instanceManager.reset(new ApplicationInstanceManager {appId, &app});
+                if (!instanceManager->isFirstInstance()) {
                     // Another instance had time to start.
                     return EXIT_FAILURE;
                 }
@@ -242,7 +200,8 @@ int main(int argc, char *argv[])
         signal(SIGSEGV, sigAbnormalHandler);
 #endif
 
-        return app->exec(params.paramList());
+//        qBittorrent->run(params.paramList());
+        return app.exec();
     }
     catch (CommandLineParameterError &er) {
         displayBadArgMessage(er.messageForUser());
@@ -316,11 +275,6 @@ void showSplashScreen()
 }
 #endif  // DISABLE_GUI
 
-void displayVersion()
-{
-    printf("%s %s\n", qUtf8Printable(qApp->applicationName()), QBT_VERSION);
-}
-
 void displayBadArgMessage(const QString &message)
 {
     const QString help = QObject::tr("Run application with -h option to read about command line parameters.");
@@ -336,42 +290,4 @@ void displayBadArgMessage(const QString &message)
         + help + '\n';
     fprintf(stderr, "%s", qUtf8Printable(errMsg));
 #endif
-}
-
-bool userAgreesWithLegalNotice()
-{
-    Preferences *const pref = Preferences::instance();
-    if (pref->getAcceptedLegal()) // Already accepted once
-        return true;
-
-#ifdef DISABLE_GUI
-    const QString eula = QString("\n*** %1 ***\n").arg(QObject::tr("Legal Notice"))
-        + QObject::tr("qBittorrent is a file sharing program. When you run a torrent, its data will be made available to others by means of upload. Any content you share is your sole responsibility.") + "\n\n"
-        + QObject::tr("No further notices will be issued.") + "\n\n"
-        + QObject::tr("Press %1 key to accept and continue...").arg("'y'") + '\n';
-    printf("%s", qUtf8Printable(eula));
-
-    const char ret = getchar(); // Read pressed key
-    if ((ret == 'y') || (ret == 'Y')) {
-        // Save the answer
-        pref->setAcceptedLegal(true);
-        return true;
-    }
-#else
-    QMessageBox msgBox;
-    msgBox.setText(QObject::tr("qBittorrent is a file sharing program. When you run a torrent, its data will be made available to others by means of upload. Any content you share is your sole responsibility.\n\nNo further notices will be issued."));
-    msgBox.setWindowTitle(QObject::tr("Legal notice"));
-    msgBox.addButton(QObject::tr("Cancel"), QMessageBox::RejectRole);
-    const QAbstractButton *agreeButton = msgBox.addButton(QObject::tr("I Agree"), QMessageBox::AcceptRole);
-    msgBox.show(); // Need to be shown or to moveToCenter does not work
-    msgBox.move(Utils::Misc::screenCenter(&msgBox));
-    msgBox.exec();
-    if (msgBox.clickedButton() == agreeButton) {
-        // Save the answer
-        pref->setAcceptedLegal(true);
-        return true;
-    }
-#endif // DISABLE_GUI
-
-    return false;
 }

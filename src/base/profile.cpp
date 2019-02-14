@@ -33,36 +33,24 @@
 
 #include "private/profile_p.h"
 
-Profile *Profile::m_instance = nullptr;
-
-Profile::Profile(Private::Profile *impl, Private::PathConverter *pathConverter)
-    : m_profileImpl(impl)
-    , m_pathConverterImpl(pathConverter)
+Profile::Profile(const QString &rootProfilePath, const QString &configurationName
+                 , bool convertPathsToProfileRelative)
+    : m_profileImpl {rootProfilePath.isEmpty()
+                     ? static_cast<Private::Profile *>(new Private::DefaultProfile(configurationName))
+                     : static_cast<Private::Profile *>(new Private::CustomProfile(rootProfilePath, configurationName))}
+    , m_pathConverterImpl {convertPathsToProfileRelative
+                     ? static_cast<Private::PathConverter *>(new Private::Converter(m_profileImpl->baseDirectory()))
+                     : static_cast<Private::PathConverter *>(new Private::NoConvertConverter())}
 {
     ensureDirectoryExists(SpecialFolder::Cache);
     ensureDirectoryExists(SpecialFolder::Config);
     ensureDirectoryExists(SpecialFolder::Data);
 }
 
-// to generate correct call to ProfilePrivate::~ProfileImpl()
-Profile::~Profile() = default;
-
-void Profile::initialize(const QString &rootProfilePath, const QString &configurationName,
-                         bool convertPathsToProfileRelative)
+Profile::~Profile()
 {
-    QScopedPointer<Private::Profile> profile(rootProfilePath.isEmpty()
-                                             ? static_cast<Private::Profile *>(new Private::DefaultProfile(configurationName))
-                                             : static_cast<Private::Profile *>(new Private::CustomProfile(rootProfilePath, configurationName)));
-
-    QScopedPointer<Private::PathConverter> converter(convertPathsToProfileRelative
-                                                     ? static_cast<Private::PathConverter *>(new Private::Converter(profile->baseDirectory()))
-                                                     : static_cast<Private::PathConverter *>(new Private::NoConvertConverter()));
-    m_instance = new Profile(profile.take(), converter.take());
-}
-
-const Profile &Profile::instance()
-{
-    return *m_instance;
+    delete m_pathConverterImpl;
+    delete m_profileImpl;
 }
 
 QString Profile::location(SpecialFolder folder) const

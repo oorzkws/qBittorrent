@@ -39,7 +39,7 @@
 #include "ui_shutdownconfirmdialog.h"
 #include "utils.h"
 
-ShutdownConfirmDialog::ShutdownConfirmDialog(QWidget *parent, const ShutdownDialogAction &action)
+ShutdownConfirmDialog::ShutdownConfirmDialog(QWidget *parent, const ShutdownAction &action)
     : QDialog(parent)
     , m_ui(new Ui::ShutdownConfirmDialog)
     , m_timeout(15)
@@ -51,7 +51,7 @@ ShutdownConfirmDialog::ShutdownConfirmDialog(QWidget *parent, const ShutdownDial
     QIcon warningIcon(style()->standardIcon(QStyle::SP_MessageBoxWarning));
     m_ui->warningLabel->setPixmap(warningIcon.pixmap(32));
 
-    if (m_action == ShutdownDialogAction::Exit)
+    if (m_action == ShutdownAction::Exit)
         m_ui->neverShowAgainCheckbox->setVisible(true);
     else
         m_ui->neverShowAgainCheckbox->setVisible(false);
@@ -82,12 +82,6 @@ void ShutdownConfirmDialog::showEvent(QShowEvent *event)
     m_timer.start();
 }
 
-bool ShutdownConfirmDialog::askForConfirmation(QWidget *parent, const ShutdownDialogAction &action)
-{
-    ShutdownConfirmDialog dlg(parent, action);
-    return (dlg.exec() == QDialog::Accepted);
-}
-
 void ShutdownConfirmDialog::updateSeconds()
 {
     --m_timeout;
@@ -109,22 +103,22 @@ void ShutdownConfirmDialog::initText()
     QPushButton *okButton = m_ui->buttonBox->button(QDialogButtonBox::Ok);
 
     switch (m_action) {
-    case ShutdownDialogAction::Exit:
+    case ShutdownAction::Exit:
         m_msg = tr("qBittorrent will now exit.");
         okButton->setText(tr("E&xit Now"));
         setWindowTitle(tr("Exit confirmation"));
         break;
-    case ShutdownDialogAction::Shutdown:
+    case ShutdownAction::Shutdown:
         m_msg = tr("The computer is going to shutdown.");
         okButton->setText(tr("&Shutdown Now"));
         setWindowTitle(tr("Shutdown confirmation"));
         break;
-    case ShutdownDialogAction::Suspend:
+    case ShutdownAction::Suspend:
         m_msg = tr("The computer is going to enter suspend mode.");
         okButton->setText(tr("&Suspend Now"));
         setWindowTitle(tr("Suspend confirmation"));
         break;
-    case ShutdownDialogAction::Hibernate:
+    case ShutdownAction::Hibernate:
         m_msg = tr("The computer is going to enter hibernation mode.");
         okButton->setText(tr("&Hibernate Now"));
         setWindowTitle(tr("Hibernate confirmation"));

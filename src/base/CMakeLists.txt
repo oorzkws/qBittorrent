@@ -38,6 +38,8 @@ net/proxyconfigurationmanager.h
 net/reverseresolution.h
 net/smtp.h
 private/profile_p.h
+qtlocalpeer/qtlocalpeer.h
+qtlocalpeer/qtlockedfile.h
 rss/private/rss_parser.h
 rss/rss_article.h
 rss/rss_autodownloader.h
@@ -60,8 +62,11 @@ utils/random.h
 utils/string.h
 utils/version.h
 algorithm.h
+applicationinstancemanager.h
 asyncfilestorage.h
+cmdoptions.h
 exceptions.h
+filelogger.h
 filesystemwatcher.h
 global.h
 iconprovider.h
@@ -69,6 +74,8 @@ indexrange.h
 logger.h
 preferences.h
 profile.h
+qbittorrent.h
+qbittorrentimpl.h
 scanfoldersmodel.h
 settingsstorage.h
 torrentfileguard.h
@@ -76,6 +83,7 @@ torrentfilter.h
 tristatebool.h
 types.h
 unicodestrings.h
+upgrade.h
 
 # sources
 bittorrent/filepriority.cpp
@@ -109,6 +117,10 @@ net/proxyconfigurationmanager.cpp
 net/reverseresolution.cpp
 net/smtp.cpp
 private/profile_p.cpp
+qtlocalpeer/qtlocalpeer.cpp
+qtlocalpeer/qtlockedfile.cpp
+qtlocalpeer/qtlockedfile_unix.cpp
+qtlocalpeer/qtlockedfile_win.cpp
 rss/private/rss_parser.cpp
 rss/rss_article.cpp
 rss/rss_autodownloader.cpp
@@ -129,19 +141,33 @@ utils/net.cpp
 utils/password.cpp
 utils/random.cpp
 utils/string.cpp
+applicationinstancemanager.cpp
 asyncfilestorage.cpp
+cmdoptions.cpp
 exceptions.cpp
+filelogger.cpp
 filesystemwatcher.cpp
 iconprovider.cpp
 logger.cpp
 preferences.cpp
 profile.cpp
+qbittorrent.cpp
+qbittorrentimpl.cpp
 scanfoldersmodel.cpp
 settingsstorage.cpp
 torrentfileguard.cpp
 torrentfilter.cpp
 tristatebool.cpp
+upgrade.cpp
 )
+
+if (STACKTRACE)
+    if (UNIX)
+        target_sources(qBittorrent PRIVATE stacktrace.h)
+    else (UNIX)
+        target_sources(qBittorrent PRIVATE stacktrace_win.h)
+    endif (UNIX)
+endif (STACKTRACE)
 
 target_link_libraries(qbt_base
     PRIVATE

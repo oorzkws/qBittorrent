@@ -29,6 +29,7 @@ HEADERS += \
     $$PWD/optionsdialog.h \
     $$PWD/previewlistdelegate.h \
     $$PWD/previewselectdialog.h \
+    $$PWD/qbittorrentguiimpl.h \
     $$PWD/raisedmessagebox.h \
     $$PWD/rss/articlelistwidget.h \
     $$PWD/rss/automatedrssdownloader.h \
@@ -85,6 +86,7 @@ SOURCES += \
     $$PWD/mainwindow.cpp \
     $$PWD/optionsdialog.cpp \
     $$PWD/previewselectdialog.cpp \
+    $$PWD/qbittorrentguiimpl.cpp \
     $$PWD/raisedmessagebox.cpp \
     $$PWD/rss/articlelistwidget.cpp \
     $$PWD/rss/automatedrssdownloader.cpp \
@@ -156,5 +158,12 @@ FORMS += \
     $$PWD/torrentcategorydialog.ui \
     $$PWD/torrentcreatordialog.ui \
     $$PWD/updownratiodialog.ui
+    
+stacktrace {
+    !unix {
+        HEADERS += $$PWD/stacktracedialog.h
+        FORMS += $$PWD/stacktracedialog.ui
+    }
+}
 
 RESOURCES += $$PWD/about.qrc

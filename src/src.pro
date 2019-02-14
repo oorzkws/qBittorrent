@@ -17,6 +17,8 @@ nogui {
     TARGET = qbittorrent
     QT += xml svg widgets
 
+    !win32: DEFINES += HAS_DAEMON_MODE
+
     CONFIG(static) {
         DEFINES += QBT_STATIC_QT
         QTPLUGIN += qico
@@ -61,7 +63,8 @@ DEFINES += QT_STRICT_ITERATORS
 
 INCLUDEPATH += $$PWD
 
-include(app/app.pri)
+SOURCES += $$PWD/main.cpp
+
 include(base/base.pri)
 !nogui: include(gui/gui.pri)
 !nowebui: include(webui/webui.pri)

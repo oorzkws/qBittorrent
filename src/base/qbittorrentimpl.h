@@ -1,6 +1,7 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2015, 2019  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2006  Christophe Dumez
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,21 +27,20 @@
  * exception statement from your version.
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
 
-#include <QMap>
+#include <QCoreApplication>
+#include "qbittorrent.h"
 
-const qlonglong MAX_ETA = 8640000;
-
-enum class ShutdownAction
+class QBittorrentImpl : public QBittorrent
 {
-    Exit,
-    Shutdown,
-    Suspend,
-    Hibernate
+    Q_OBJECT
+    Q_DISABLE_COPY(QBittorrentImpl)
+
+public:
+    QBittorrentImpl(QCoreApplication &app);
+    ~QBittorrentImpl() override;
+
+private:
+    bool createComponents() override;
 };
-
-typedef QMap<QString, QString> QStringMap;
-
-#endif // TYPES_H
