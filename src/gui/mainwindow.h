@@ -75,6 +75,7 @@ namespace Ui
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+    Q_DISABLE_COPY(MainWindow)
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
@@ -84,22 +85,6 @@ public:
     TransferListWidget *transferListWidget() const;
     PropertiesWidget *propertiesWidget() const;
     QMenu *trayIconMenu();
-
-    // ExecutionLog properties
-    bool isExecutionLogEnabled() const;
-    void setExecutionLogEnabled(bool value);
-    int executionLogMsgTypes() const;
-    void setExecutionLogMsgTypes(int value);
-
-    // Notifications properties
-    bool isNotificationsEnabled() const;
-    void setNotificationsEnabled(bool value);
-    bool isTorrentAddedNotificationsEnabled() const;
-    void setTorrentAddedNotificationsEnabled(bool value);
-
-    // Misc properties
-    bool isDownloadTrackerFavicon() const;
-    void setDownloadTrackerFavicon(bool value);
 
     void activate();
     void cleanup();
@@ -134,7 +119,7 @@ private slots:
     void torrentNew(BitTorrent::TorrentHandle *const torrent) const;
     void finishedTorrent(BitTorrent::TorrentHandle *const torrent) const;
     void askRecursiveTorrentDownloadConfirmation(BitTorrent::TorrentHandle *const torrent);
-    void optionsSaved();
+    void configure();
 #if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
     void handleUpdateCheckFinished(bool updateAvailable, QString newVersion, bool invokedByUser);
 #endif

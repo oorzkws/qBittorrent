@@ -43,9 +43,6 @@ namespace Net
 
         static PortForwarder *instance();
 
-        virtual bool isEnabled() const = 0;
-        virtual void setEnabled(bool enabled) = 0;
-
         virtual void addPort(quint16 port) = 0;
         virtual void deletePort(quint16 port) = 0;
 

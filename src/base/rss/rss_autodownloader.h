@@ -80,14 +80,7 @@ namespace RSS
         static AutoDownloader *instance();
 
         bool isProcessingEnabled() const;
-        void setProcessingEnabled(bool enabled);
-
-        QStringList smartEpisodeFilters() const;
-        void setSmartEpisodeFilters(const QStringList &filters);
         QRegularExpression smartEpisodeRegex() const;
-
-        bool downloadRepacks() const;
-        void setDownloadRepacks(bool downloadRepacks);
 
         bool hasRule(const QString &ruleName) const;
         AutoDownloadRule ruleByName(const QString &ruleName) const;
@@ -115,6 +108,7 @@ namespace RSS
 
     private:
         void timerEvent(QTimerEvent *event) override;
+        void configure();
         void setRule_impl(const AutoDownloadRule &rule);
         void resetProcessingQueue();
         void startProcessing();
@@ -132,7 +126,7 @@ namespace RSS
 
         static QPointer<AutoDownloader> m_instance;
 
-        bool m_processingEnabled;
+        bool m_processingEnabled = false;
         QTimer *m_processingTimer;
         QThread *m_ioThread;
         AsyncFileStorage *m_fileStorage;

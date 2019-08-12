@@ -92,17 +92,11 @@ namespace RSS
         static Session *instance();
 
         bool isProcessingEnabled() const;
-        void setProcessingEnabled(bool enabled);
+        int maxArticlesPerFeed() const;
 
         QThread *workingThread() const;
         AsyncFileStorage *confFileStorage() const;
         AsyncFileStorage *dataFileStorage() const;
-
-        int maxArticlesPerFeed() const;
-        void setMaxArticlesPerFeed(int n);
-
-        uint refreshInterval() const;
-        void setRefreshInterval(uint refreshInterval);
 
         bool addFolder(const QString &path, QString *error = nullptr);
         bool addFeed(const QString &url, const QString &path, QString *error = nullptr);
@@ -135,6 +129,7 @@ namespace RSS
         void handleFeedTitleChanged(Feed *feed);
 
     private:
+        void configure();
         QUuid generateUID() const;
         void load();
         void loadFolder(const QJsonObject &jsonObj, Folder *folder);
@@ -147,13 +142,12 @@ namespace RSS
 
         static QPointer<Session> m_instance;
 
-        bool m_processingEnabled;
         QThread *m_workingThread;
         AsyncFileStorage *m_confFileStorage;
         AsyncFileStorage *m_dataFileStorage;
         QTimer m_refreshTimer;
-        uint m_refreshInterval;
-        int m_maxArticlesPerFeed;
+        bool m_processingEnabled = false;
+        int m_maxArticlesPerFeed = 50;
         QHash<QString, Item *> m_itemsByPath;
         QHash<QUuid, Feed *> m_feedsByUID;
         QHash<QString, Feed *> m_feedsByURL;

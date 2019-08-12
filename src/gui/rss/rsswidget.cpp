@@ -352,7 +352,7 @@ void RSSWidget::downloadSelectedTorrents()
         article->markAsRead();
 
         if (!article->torrentUrl().isEmpty()) {
-            if (AddNewTorrentDialog::isEnabled())
+            if (Preferences::instance()->isAddTorrentDialogEnabled())
                 AddNewTorrentDialog::show(article->torrentUrl(), window());
             else
                 BitTorrent::Session::instance()->addTorrent(article->torrentUrl());
@@ -515,11 +515,6 @@ void RSSWidget::restoreSlidersPosition()
     const QByteArray stateMain = pref->getRssMainSplitterState();
     if (!stateMain.isEmpty())
         m_ui->splitterMain->restoreState(stateMain);
-}
-
-void RSSWidget::updateRefreshInterval(uint val)
-{
-    RSS::Session::instance()->setRefreshInterval(val);
 }
 
 void RSSWidget::on_rssDownloaderBtn_clicked()

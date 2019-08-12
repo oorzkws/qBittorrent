@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2016  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2020  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,10 +26,7 @@
  * exception statement from your version.
  */
 
-#ifndef NET_PROXYCONFIGURATIONMANAGER_H
-#define NET_PROXYCONFIGURATIONMANAGER_H
-
-#include <QObject>
+#pragma once
 
 namespace Net
 {
@@ -43,47 +40,8 @@ namespace Net
         SOCKS4 = 5
     };
 
-    struct ProxyConfiguration
+    constexpr bool isProxyAuthenticationRequired(ProxyType proxyType)
     {
-        ProxyType type = ProxyType::None;
-        QString ip = "0.0.0.0";
-        ushort port = 8080;
-        QString username;
-        QString password;
-    };
-    bool operator==(const ProxyConfiguration &left, const ProxyConfiguration &right);
-    bool operator!=(const ProxyConfiguration &left, const ProxyConfiguration &right);
-
-    class ProxyConfigurationManager : public QObject
-    {
-        Q_OBJECT
-        Q_DISABLE_COPY(ProxyConfigurationManager)
-
-        explicit ProxyConfigurationManager(QObject *parent = nullptr);
-        ~ProxyConfigurationManager() = default;
-
-    public:
-        static void initInstance();
-        static void freeInstance();
-        static ProxyConfigurationManager *instance();
-
-        ProxyConfiguration proxyConfiguration() const;
-        void setProxyConfiguration(const ProxyConfiguration &config);
-        bool isProxyOnlyForTorrents() const;
-        void setProxyOnlyForTorrents(bool onlyForTorrents);
-
-        bool isAuthenticationRequired() const;
-
-    signals:
-        void proxyConfigurationChanged();
-
-    private:
-        void configureProxy();
-
-        static ProxyConfigurationManager *m_instance;
-        ProxyConfiguration m_config;
-        bool m_isProxyOnlyForTorrents;
-    };
+        return (proxyType == ProxyType::HTTP_PW) || (proxyType == ProxyType::SOCKS5_PW);
+    }
 }
-
-#endif // NET_PROXYCONFIGURATIONMANAGER_H

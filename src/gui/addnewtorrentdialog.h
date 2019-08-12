@@ -63,17 +63,7 @@ class AddNewTorrentDialog : public QDialog
     Q_DISABLE_COPY(AddNewTorrentDialog)
 
 public:
-    static const int minPathHistoryLength = 0;
-    static const int maxPathHistoryLength = 99;
-
     ~AddNewTorrentDialog() override;
-
-    static bool isEnabled();
-    static void setEnabled(bool value);
-    static bool isTopLevel();
-    static void setTopLevel(bool value);
-    static int savePathHistoryLength();
-    static void setSavePathHistoryLength(int value);
 
     static void show(const QString &source, const BitTorrent::AddTorrentParams &inParams, QWidget *parent);
     static void show(const QString &source, QWidget *parent);
@@ -93,6 +83,7 @@ private slots:
 
 private:
     explicit AddNewTorrentDialog(const BitTorrent::AddTorrentParams &inParams, QWidget *parent);
+    void configure();
     bool loadTorrentFile(const QString &torrentPath);
     bool loadTorrentImpl();
     bool loadMagnet(const BitTorrent::MagnetUri &magnetUri);

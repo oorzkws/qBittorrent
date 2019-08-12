@@ -46,10 +46,8 @@
 #include "base/global.h"
 #include "base/net/dnsupdater.h"
 #include "base/net/portforwarder.h"
-#include "base/net/proxyconfigurationmanager.h"
 #include "base/preferences.h"
 #include "base/rss/rss_autodownloader.h"
-#include "base/rss/rss_session.h"
 #include "base/scanfoldersmodel.h"
 #include "base/torrentfileguard.h"
 #include "base/unicodestrings.h"
@@ -59,7 +57,6 @@
 #include "base/utils/random.h"
 #include "addnewtorrentdialog.h"
 #include "advancedsettings.h"
-#include "app/application.h"
 #include "banlistoptionsdialog.h"
 #include "ipsubnetwhitelistoptionsdialog.h"
 #include "rss/automatedrssdownloader.h"
@@ -630,22 +627,21 @@ void OptionsDialog::saveOptions()
 #if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
     pref->setUpdateCheckEnabled(m_ui->checkProgramUpdates->isChecked());
 #endif
-    auto *const app = static_cast<Application *>(QCoreApplication::instance());
-    app->setFileLoggerPath(m_ui->textFileLogPath->selectedPath());
-    app->setFileLoggerBackup(m_ui->checkFileLogBackup->isChecked());
-    app->setFileLoggerMaxSize(m_ui->spinFileLogSize->value() * 1024);
-    app->setFileLoggerAge(m_ui->spinFileLogAge->value());
-    app->setFileLoggerAgeType(m_ui->comboFileLogAgeType->currentIndex());
-    app->setFileLoggerDeleteOld(m_ui->checkFileLogDelete->isChecked());
-    app->setFileLoggerEnabled(m_ui->checkFileLog->isChecked());
-    // End Behavior preferences
+    pref->setFileLoggerPath(m_ui->textFileLogPath->selectedPath());
+    pref->setFileLoggerBackup(m_ui->checkFileLogBackup->isChecked());
+    pref->setFileLoggerMaxSize(m_ui->spinFileLogSize->value() * 1024);
+    pref->setFileLoggerAge(m_ui->spinFileLogAge->value());
+    pref->setFileLoggerAgeType(m_ui->comboFileLogAgeType->currentIndex());
+    pref->setFileLoggerDeleteOld(m_ui->checkFileLogDelete->isChecked());
+    pref->setFileLoggerEnabled(m_ui->checkFileLog->isChecked());
+    // End General preferences
 
-    RSS::Session::instance()->setRefreshInterval(m_ui->spinRSSRefreshInterval->value());
-    RSS::Session::instance()->setMaxArticlesPerFeed(m_ui->spinRSSMaxArticlesPerFeed->value());
-    RSS::Session::instance()->setProcessingEnabled(m_ui->checkRSSEnable->isChecked());
-    RSS::AutoDownloader::instance()->setProcessingEnabled(m_ui->checkRSSAutoDownloaderEnable->isChecked());
-    RSS::AutoDownloader::instance()->setSmartEpisodeFilters(m_ui->textSmartEpisodeFilters->toPlainText().split('\n', QString::SplitBehavior::SkipEmptyParts));
-    RSS::AutoDownloader::instance()->setDownloadRepacks(m_ui->checkSmartFilterDownloadRepacks->isChecked());
+    pref->setRSSRefreshInterval(m_ui->spinRSSRefreshInterval->value());
+    pref->setRSSMaxArticlesPerFeed(m_ui->spinRSSMaxArticlesPerFeed->value());
+    pref->setRSSProcessingEnabled(m_ui->checkRSSEnable->isChecked());
+    pref->setRSSAutoDownloadingEnabled(m_ui->checkRSSAutoDownloaderEnable->isChecked());
+    pref->setRSSSmartEpisodeFilters(m_ui->textSmartEpisodeFilters->toPlainText().split('\n', QString::SplitBehavior::SkipEmptyParts));
+    pref->setRSSDownloadRepacks(m_ui->checkSmartFilterDownloadRepacks->isChecked());
 
     auto session = BitTorrent::Session::instance();
 
@@ -661,8 +657,8 @@ void OptionsDialog::saveOptions()
     session->setAppendExtensionEnabled(m_ui->checkAppendqB->isChecked());
     session->setPreallocationEnabled(preAllocateAllFiles());
     pref->disableRecursiveDownload(!m_ui->checkRecursiveDownload->isChecked());
-    AddNewTorrentDialog::setEnabled(useAdditionDialog());
-    AddNewTorrentDialog::setTopLevel(m_ui->checkAdditionDialogFront->isChecked());
+    pref->setAddTorrentDialogEnabled(useAdditionDialog());
+    pref->setAddTorrentDialogTopLevel(m_ui->checkAdditionDialogFront->isChecked());
     session->setAddTorrentPaused(addTorrentsInPause());
     session->setCreateTorrentSubfolder(m_ui->checkCreateSubfolder->isChecked());
     ScanFoldersModel::instance()->removeFromFSWatcher(m_removedScanDirs);
@@ -696,7 +692,7 @@ void OptionsDialog::saveOptions()
     session->setBTProtocol(static_cast<BitTorrent::BTProtocol>(m_ui->comboProtocol->currentIndex()));
     session->setPort(getPort());
     session->setUseRandomPort(m_ui->checkRandomPort->isChecked());
-    Net::PortForwarder::instance()->setEnabled(isUPnPEnabled());
+    pref->setPortForwardingEnabled(isUPnPEnabled());
     session->setGlobalDownloadSpeedLimit(m_ui->spinDownloadLimit->value() * 1024);
     session->setGlobalUploadSpeedLimit(m_ui->spinUploadLimit->value() * 1024);
     session->setAltGlobalDownloadSpeedLimit(m_ui->spinDownloadLimitAlt->value() * 1024);
@@ -709,16 +705,12 @@ void OptionsDialog::saveOptions()
     pref->setSchedulerDays(static_cast<SchedulerDays>(m_ui->comboBoxScheduleDays->currentIndex()));
     session->setBandwidthSchedulerEnabled(m_ui->groupBoxSchedule->isChecked());
 
-    auto proxyConfigManager = Net::ProxyConfigurationManager::instance();
-    Net::ProxyConfiguration proxyConf;
-    proxyConf.type = getProxyType();
-    proxyConf.ip = getProxyIp();
-    proxyConf.port = getProxyPort();
-    proxyConf.username = getProxyUsername();
-    proxyConf.password = getProxyPassword();
-    proxyConfigManager->setProxyOnlyForTorrents(m_ui->isProxyOnlyForTorrents->isChecked());
-    proxyConfigManager->setProxyConfiguration(proxyConf);
-
+    pref->setProxyType(getProxyType());
+    pref->setProxyIP(getProxyIp());
+    pref->setProxyPort(getProxyPort());
+    pref->setProxyUsername(getProxyUsername());
+    pref->setProxyPassword(getProxyPassword());
+    pref->setProxyOnlyForTorrents(m_ui->isProxyOnlyForTorrents->isChecked());
     session->setProxyPeerConnectionsEnabled(m_ui->checkProxyPeerConnecs->isChecked());
     // End Connection preferences
 
@@ -802,7 +794,7 @@ void OptionsDialog::saveOptions()
     m_advancedSettings->saveAdvancedSettings();
     // Assume that user changed multiple settings
     // so it's best to save immediately
-    pref->apply();
+    pref->notifyChanged();
 }
 
 bool OptionsDialog::isIPFilteringEnabled() const
@@ -877,34 +869,33 @@ void OptionsDialog::loadOptions()
     m_ui->checkProgramUpdates->setChecked(pref->isUpdateCheckEnabled());
 #endif
 
-    const Application *const app = static_cast<Application*>(QCoreApplication::instance());
-    m_ui->checkFileLog->setChecked(app->isFileLoggerEnabled());
-    m_ui->textFileLogPath->setSelectedPath(app->fileLoggerPath());
-    fileLogBackup = app->isFileLoggerBackup();
+    m_ui->checkFileLog->setChecked(pref->isFileLoggerEnabled());
+    m_ui->textFileLogPath->setSelectedPath(pref->fileLoggerPath());
+    fileLogBackup = pref->isFileLoggerBackup();
     m_ui->checkFileLogBackup->setChecked(fileLogBackup);
     m_ui->spinFileLogSize->setEnabled(fileLogBackup);
-    fileLogDelete = app->isFileLoggerDeleteOld();
+    fileLogDelete = pref->isFileLoggerDeleteOld();
     m_ui->checkFileLogDelete->setChecked(fileLogDelete);
     m_ui->spinFileLogAge->setEnabled(fileLogDelete);
     m_ui->comboFileLogAgeType->setEnabled(fileLogDelete);
-    m_ui->spinFileLogSize->setValue(app->fileLoggerMaxSize() / 1024);
-    m_ui->spinFileLogAge->setValue(app->fileLoggerAge());
-    m_ui->comboFileLogAgeType->setCurrentIndex(app->fileLoggerAgeType());
+    m_ui->spinFileLogSize->setValue(pref->fileLoggerMaxSize() / 1024);
+    m_ui->spinFileLogAge->setValue(pref->fileLoggerAge());
+    m_ui->comboFileLogAgeType->setCurrentIndex(pref->fileLoggerAgeType());
     // End Behavior preferences
 
-    m_ui->checkRSSEnable->setChecked(RSS::Session::instance()->isProcessingEnabled());
-    m_ui->checkRSSAutoDownloaderEnable->setChecked(RSS::AutoDownloader::instance()->isProcessingEnabled());
-    m_ui->textSmartEpisodeFilters->setPlainText(RSS::AutoDownloader::instance()->smartEpisodeFilters().join('\n'));
-    m_ui->checkSmartFilterDownloadRepacks->setChecked(RSS::AutoDownloader::instance()->downloadRepacks());
+    m_ui->checkRSSEnable->setChecked(pref->isRSSProcessingEnabled());
+    m_ui->checkRSSAutoDownloaderEnable->setChecked(pref->isRSSAutoDownloadingEnabled());
+    m_ui->textSmartEpisodeFilters->setPlainText(pref->getRSSSmartEpisodeFilters().join('\n'));
+    m_ui->checkSmartFilterDownloadRepacks->setChecked(pref->getRSSDownloadRepacks());
 
-    m_ui->spinRSSRefreshInterval->setValue(RSS::Session::instance()->refreshInterval());
-    m_ui->spinRSSMaxArticlesPerFeed->setValue(RSS::Session::instance()->maxArticlesPerFeed());
+    m_ui->spinRSSRefreshInterval->setValue(pref->getRSSRefreshInterval());
+    m_ui->spinRSSMaxArticlesPerFeed->setValue(pref->getRSSMaxArticlesPerFeed());
 
     const auto *session = BitTorrent::Session::instance();
 
     // Downloads preferences
-    m_ui->checkAdditionDialog->setChecked(AddNewTorrentDialog::isEnabled());
-    m_ui->checkAdditionDialogFront->setChecked(AddNewTorrentDialog::isTopLevel());
+    m_ui->checkAdditionDialog->setChecked(pref->isAddTorrentDialogEnabled());
+    m_ui->checkAdditionDialogFront->setChecked(pref->isAddTorrentDialogTopLevel());
     m_ui->checkStartPaused->setChecked(session->isAddTorrentPaused());
     m_ui->checkCreateSubfolder->setChecked(session->isCreateTorrentSubfolder());
     const TorrentFileGuard::AutoDeleteMode autoDeleteMode = TorrentFileGuard::autoDeleteMode();
@@ -979,7 +970,7 @@ void OptionsDialog::loadOptions()
 
     // Connection preferences
     m_ui->comboProtocol->setCurrentIndex(static_cast<int>(session->btProtocol()));
-    m_ui->checkUPnP->setChecked(Net::PortForwarder::instance()->isEnabled());
+    m_ui->checkUPnP->setChecked(pref->isPortForwardingEnabled());
     m_ui->checkRandomPort->setChecked(session->useRandomPort());
     m_ui->spinPort->setValue(session->port());
     m_ui->spinPort->setDisabled(m_ui->checkRandomPort->isChecked());
@@ -1033,24 +1024,20 @@ void OptionsDialog::loadOptions()
         m_ui->spinMaxUploadsPerTorrent->setEnabled(false);
     }
 
-    const auto *proxyConfigManager = Net::ProxyConfigurationManager::instance();
-    Net::ProxyConfiguration proxyConf = proxyConfigManager->proxyConfiguration();
     using Net::ProxyType;
-    bool useProxyAuth = false;
-    switch (proxyConf.type) {
+    const ProxyType proxyType = pref->proxyType();
+    switch (proxyType) {
     case ProxyType::SOCKS4:
         m_ui->comboProxyType->setCurrentIndex(1);
         break;
 
     case ProxyType::SOCKS5_PW:
-        useProxyAuth = true;
         // fallthrough
     case ProxyType::SOCKS5:
         m_ui->comboProxyType->setCurrentIndex(2);
         break;
 
     case ProxyType::HTTP_PW:
-        useProxyAuth = true;
         // fallthrough
     case ProxyType::HTTP:
         m_ui->comboProxyType->setCurrentIndex(3);
@@ -1059,14 +1046,14 @@ void OptionsDialog::loadOptions()
     default:
         m_ui->comboProxyType->setCurrentIndex(0);
     }
-    m_ui->textProxyIP->setText(proxyConf.ip);
-    m_ui->spinProxyPort->setValue(proxyConf.port);
-    m_ui->checkProxyAuth->setChecked(useProxyAuth);
-    m_ui->textProxyUsername->setText(proxyConf.username);
-    m_ui->textProxyPassword->setText(proxyConf.password);
+    m_ui->textProxyIP->setText(pref->proxyIP());
+    m_ui->spinProxyPort->setValue(pref->proxyPort());
+    m_ui->checkProxyAuth->setChecked(Net::isProxyAuthenticationRequired(proxyType));
+    m_ui->textProxyUsername->setText(pref->proxyUsername());
+    m_ui->textProxyPassword->setText(pref->proxyPassword());
 
     m_ui->checkProxyPeerConnecs->setChecked(session->isProxyPeerConnectionsEnabled());
-    m_ui->isProxyOnlyForTorrents->setChecked(proxyConfigManager->isProxyOnlyForTorrents());
+    m_ui->isProxyOnlyForTorrents->setChecked(pref->isProxyOnlyForTorrents());
     enableProxy(m_ui->comboProxyType->currentIndex());
 
     m_ui->checkIPFilter->setChecked(session->isIPFilteringEnabled());

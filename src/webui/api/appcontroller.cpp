@@ -46,10 +46,7 @@
 #include "base/bittorrent/session.h"
 #include "base/global.h"
 #include "base/net/portforwarder.h"
-#include "base/net/proxyconfigurationmanager.h"
 #include "base/preferences.h"
-#include "base/rss/rss_autodownloader.h"
-#include "base/rss/rss_session.h"
 #include "base/scanfoldersmodel.h"
 #include "base/torrentfileguard.h"
 #include "base/utils/fs.h"
@@ -140,7 +137,7 @@ void AppController::preferencesAction()
     // Connection
     // Listening Port
     data["listen_port"] = session->port();
-    data["upnp"] = Net::PortForwarder::instance()->isEnabled();
+    data["upnp"] = pref->isPortForwardingEnabled();
     data["random_port"] = session->useRandomPort();
     // Connections Limits
     data["max_connec"] = session->maxConnections();
@@ -149,17 +146,16 @@ void AppController::preferencesAction()
     data["max_uploads_per_torrent"] = session->maxUploadsPerTorrent();
 
     // Proxy Server
-    const auto *proxyManager = Net::ProxyConfigurationManager::instance();
-    Net::ProxyConfiguration proxyConf = proxyManager->proxyConfiguration();
-    data["proxy_type"] = static_cast<int>(proxyConf.type);
-    data["proxy_ip"] = proxyConf.ip;
-    data["proxy_port"] = proxyConf.port;
-    data["proxy_auth_enabled"] = proxyManager->isAuthenticationRequired(); // deprecated
-    data["proxy_username"] = proxyConf.username;
-    data["proxy_password"] = proxyConf.password;
+    const Net::ProxyType proxyType = pref->proxyType();
+    data["proxy_type"] = static_cast<int>(proxyType);
+    data["proxy_ip"] = pref->proxyIP();
+    data["proxy_port"] = pref->proxyPort();
+    data["proxy_auth_enabled"] = Net::isProxyAuthenticationRequired(proxyType); // deprecated
+    data["proxy_username"] = pref->proxyUsername();
+    data["proxy_password"] = pref->proxyPassword();
 
     data["proxy_peer_connections"] = session->isProxyPeerConnectionsEnabled();
-    data["proxy_torrents_only"] = proxyManager->isProxyOnlyForTorrents();
+    data["proxy_torrents_only"] = pref->isProxyOnlyForTorrents();
 
     // IP Filtering
     data["ip_filter_enabled"] = session->isIPFilteringEnabled();
@@ -251,10 +247,10 @@ void AppController::preferencesAction()
     data["dyndns_domain"] = pref->getDynDomainName();
 
     // RSS settings
-    data["rss_refresh_interval"] = static_cast<double>(RSS::Session::instance()->refreshInterval());
-    data["rss_max_articles_per_feed"] = RSS::Session::instance()->maxArticlesPerFeed();
-    data["rss_processing_enabled"] = RSS::Session::instance()->isProcessingEnabled();
-    data["rss_auto_downloading_enabled"] = RSS::AutoDownloader::instance()->isProcessingEnabled();
+    data["rss_refresh_interval"] = pref->getRSSRefreshInterval();
+    data["rss_max_articles_per_feed"] = pref->getRSSMaxArticlesPerFeed();
+    data["rss_processing_enabled"] = pref->isRSSProcessingEnabled();
+    data["rss_auto_downloading_enabled"] = pref->isRSSAutoDownloadingEnabled();
 
     // Advanced settings
     // qBitorrent preferences
@@ -439,7 +435,7 @@ void AppController::setPreferencesAction()
     if (hasKey("listen_port"))
         session->setPort(it.value().toInt());
     if (hasKey("upnp"))
-        Net::PortForwarder::instance()->setEnabled(it.value().toBool());
+        pref->setPortForwardingEnabled(it.value().toBool());
     if (hasKey("random_port"))
         session->setUseRandomPort(it.value().toBool());
     // Connections Limits
@@ -453,24 +449,20 @@ void AppController::setPreferencesAction()
         session->setMaxUploadsPerTorrent(it.value().toInt());
 
     // Proxy Server
-    auto proxyManager = Net::ProxyConfigurationManager::instance();
-    Net::ProxyConfiguration proxyConf = proxyManager->proxyConfiguration();
     if (hasKey("proxy_type"))
-        proxyConf.type = static_cast<Net::ProxyType>(it.value().toInt());
+        pref->setProxyType(static_cast<Net::ProxyType>(it.value().toInt()));
     if (hasKey("proxy_ip"))
-        proxyConf.ip = it.value().toString();
+        pref->setProxyIP(it.value().toString());
     if (hasKey("proxy_port"))
-        proxyConf.port = it.value().toUInt();
+        pref->setProxyPort(it.value().toInt());
     if (hasKey("proxy_username"))
-        proxyConf.username = it.value().toString();
+        pref->setProxyUsername(it.value().toString());
     if (hasKey("proxy_password"))
-        proxyConf.password = it.value().toString();
-    proxyManager->setProxyConfiguration(proxyConf);
-
+        pref->setProxyPassword(it.value().toString());
+    if (hasKey("proxy_torrents_only"))
+        pref->setProxyOnlyForTorrents(it.value().toBool());
     if (hasKey("proxy_peer_connections"))
         session->setProxyPeerConnectionsEnabled(it.value().toBool());
-    if (hasKey("proxy_torrents_only"))
-        proxyManager->setProxyOnlyForTorrents(it.value().toBool());
 
     // IP Filtering
     if (hasKey("ip_filter_enabled"))
@@ -636,13 +628,13 @@ void AppController::setPreferencesAction()
         pref->setDynDomainName(it.value().toString());
 
     if (hasKey("rss_refresh_interval"))
-        RSS::Session::instance()->setRefreshInterval(it.value().toUInt());
+        pref->setRSSRefreshInterval(it.value().toInt());
     if (hasKey("rss_max_articles_per_feed"))
-        RSS::Session::instance()->setMaxArticlesPerFeed(it.value().toInt());
+        pref->setRSSMaxArticlesPerFeed(it.value().toInt());
     if (hasKey("rss_processing_enabled"))
-        RSS::Session::instance()->setProcessingEnabled(it.value().toBool());
+        pref->setRSSProcessingEnabled(it.value().toBool());
     if (hasKey("rss_auto_downloading_enabled"))
-        RSS::AutoDownloader::instance()->setProcessingEnabled(it.value().toBool());
+        pref->setRSSAutoDownloadingEnabled(it.value().toBool());
 
     // Advanced settings
     // qBittorrent preferences
@@ -751,7 +743,7 @@ void AppController::setPreferencesAction()
         session->setStopTrackerTimeout(it.value().toInt());
 
     // Save preferences
-    pref->apply();
+    pref->notifyChanged();
 }
 
 void AppController::defaultSavePathAction()

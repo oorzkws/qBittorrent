@@ -53,13 +53,11 @@ public:
     explicit PortForwarderImpl(lt::session *provider, QObject *parent = nullptr);
     ~PortForwarderImpl() override;
 
-    bool isEnabled() const override;
-    void setEnabled(bool enabled) override;
-
     void addPort(quint16 port) override;
     void deletePort(quint16 port) override;
 
 private:
+    void configure();
     void start();
     void stop();
 

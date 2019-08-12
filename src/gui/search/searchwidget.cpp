@@ -43,6 +43,7 @@
 #include <QVector>
 
 #include "base/global.h"
+#include "base/preferences.h"
 #include "base/search/searchhandler.h"
 #include "base/search/searchpluginmanager.h"
 #include "base/utils/foreignapps.h"
@@ -324,7 +325,7 @@ void SearchWidget::tabStatusChanged(QWidget *tab)
     if ((tab == m_activeSearchTab) && (m_activeSearchTab->status() != SearchJobWidget::Status::Ongoing)) {
         Q_ASSERT(m_activeSearchTab->status() != SearchJobWidget::Status::Ongoing);
 
-        if (m_mainWindow->isNotificationsEnabled() && (m_mainWindow->currentTabWidget() != this)) {
+        if (Preferences::instance()->isNotificationsEnabled() && (m_mainWindow->currentTabWidget() != this)) {
             if (m_activeSearchTab->status() == SearchJobWidget::Status::Error)
                 m_mainWindow->showNotificationBaloon(tr("Search Engine"), tr("Search has failed"));
             else

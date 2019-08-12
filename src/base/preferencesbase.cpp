@@ -1,7 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2016  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2014  sledgehammer999 <hammered999@gmail.com>
+ * Copyright (C) 2020  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,38 +26,47 @@
  * exception statement from your version.
  */
 
-#pragma once
+#include "preferencesbase.h"
 
-#include <QObject>
-#include <QReadWriteLock>
-#include <QTimer>
-#include <QVariantHash>
+#include <QVariant>
 
-class SettingsStorage : public QObject
+#include "settingsstorage.h"
+
+bool PreferencesItemHandlerBase::isChanged() const
 {
-    Q_OBJECT
-    Q_DISABLE_COPY(SettingsStorage)
+    return m_isChanged;
+}
 
-    SettingsStorage();
-    ~SettingsStorage() override;
+void PreferencesItemHandlerBase::reset()
+{
+    m_isChanged = false;
+}
 
-public:
-    static void initInstance();
-    static void freeInstance();
-    static SettingsStorage *instance();
+PreferencesBase::PreferencesBase(QObject *parent)
+    : QObject {parent}
+    , m_storage {SettingsStorage::instance()}
+{
+}
 
-    QVariant loadValue(const QString &key, const QVariant &defaultValue = {}) const;
-    void storeValue(const QString &key, const QVariant &value);
-    void removeValue(const QString &key);
+PreferencesBase::~PreferencesBase()
+{
+    qDeleteAll(m_itemHandlers);
+}
 
-public slots:
-    bool save();
+void PreferencesBase::notifyChanged()
+{
+    m_storage->save(); // flush changes
+    emit changed();
+    for (PreferencesItemHandlerBase *itemHandler : m_itemHandlers)
+        itemHandler->reset();
+}
 
-private:
-    static SettingsStorage *m_instance;
+const QVariant PreferencesBase::value(const QString &key, const QVariant &defaultValue) const
+{
+    return m_storage->loadValue(key, defaultValue);
+}
 
-    QVariantHash m_data;
-    bool m_dirty;
-    QTimer m_timer;
-    mutable QReadWriteLock m_lock;
-};
+void PreferencesBase::setValue(const QString &key, const QVariant &value)
+{
+    m_storage->storeValue(key, value);
+}

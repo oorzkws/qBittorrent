@@ -45,7 +45,6 @@
 #include "base/logger.h"
 #include "base/preferences.h"
 #include "private/downloadhandlerimpl.h"
-#include "proxyconfigurationmanager.h"
 
 namespace
 {
@@ -135,10 +134,9 @@ Net::DownloadManager::DownloadManager(QObject *parent)
 {
     connect(&m_networkManager, &QNetworkAccessManager::sslErrors, this, &Net::DownloadManager::ignoreSslErrors);
     connect(&m_networkManager, &QNetworkAccessManager::finished, this, &DownloadManager::handleReplyFinished);
-    connect(ProxyConfigurationManager::instance(), &ProxyConfigurationManager::proxyConfigurationChanged
-            , this, &DownloadManager::applyProxySettings);
+    connect(Preferences::instance(), &Preferences::changed, this, &DownloadManager::configure);
     m_networkManager.setCookieJar(new NetworkCookieJar(this));
-    applyProxySettings();
+    configure();
 }
 
 void Net::DownloadManager::initInstance()
@@ -224,34 +222,28 @@ bool Net::DownloadManager::hasSupportedScheme(const QString &url)
     });
 }
 
-void Net::DownloadManager::applyProxySettings()
+void Net::DownloadManager::configure()
 {
-    const auto *proxyManager = ProxyConfigurationManager::instance();
-    const ProxyConfiguration proxyConfig = proxyManager->proxyConfiguration();
-    QNetworkProxy proxy;
-
-    if (!proxyManager->isProxyOnlyForTorrents() && (proxyConfig.type != ProxyType::None)) {
-        // Proxy enabled
-        proxy.setHostName(proxyConfig.ip);
-        proxy.setPort(proxyConfig.port);
-        // Default proxy type is HTTP, we must change if it is SOCKS5
-        if ((proxyConfig.type == ProxyType::SOCKS5) || (proxyConfig.type == ProxyType::SOCKS5_PW)) {
-            qDebug() << Q_FUNC_INFO << "using SOCKS proxy";
-            proxy.setType(QNetworkProxy::Socks5Proxy);
-        }
-        else {
-            qDebug() << Q_FUNC_INFO << "using HTTP proxy";
-            proxy.setType(QNetworkProxy::HttpProxy);
-        }
-        // Authentication?
-        if (proxyManager->isAuthenticationRequired()) {
-            qDebug("Proxy requires authentication, authenticating...");
-            proxy.setUser(proxyConfig.username);
-            proxy.setPassword(proxyConfig.password);
-        }
+    const Preferences *pref = Preferences::instance();
+    if (pref->isProxyOnlyForTorrents()) {
+        m_networkManager.setProxy(QNetworkProxy {QNetworkProxy::NoProxy});
+        return;
     }
-    else {
-        proxy.setType(QNetworkProxy::NoProxy);
+
+    QNetworkProxy proxy {QNetworkProxy::NoProxy};
+    proxy.setHostName(pref->proxyIP());
+    proxy.setPort(pref->proxyPort());
+
+    const ProxyType proxyType = pref->proxyType();
+    if ((proxyType == ProxyType::SOCKS5) || (proxyType == ProxyType::SOCKS5_PW))
+        proxy.setType(QNetworkProxy::Socks5Proxy);
+    else if ((proxyType == ProxyType::HTTP) || (proxyType == ProxyType::HTTP_PW))
+        proxy.setType(QNetworkProxy::HttpProxy);
+
+    // Authentication?
+    if (isProxyAuthenticationRequired(proxyType)) {
+        proxy.setUser(pref->proxyUsername());
+        proxy.setPassword(pref->proxyPassword());
     }
 
     m_networkManager.setProxy(proxy);

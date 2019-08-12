@@ -41,6 +41,7 @@
 #include "../asyncfilestorage.h"
 #include "../global.h"
 #include "../logger.h"
+#include "../preferences.h"
 #include "../profile.h"
 #include "../settingsstorage.h"
 #include "../utils/fs.h"
@@ -49,30 +50,23 @@
 #include "rss_folder.h"
 #include "rss_item.h"
 
-const int MsecsPerMin = 60000;
-const QString ConfFolderName(QStringLiteral("rss"));
-const QString DataFolderName(QStringLiteral("rss/articles"));
-const QString FeedsFileName(QStringLiteral("feeds.json"));
-
-const QString SettingsKey_ProcessingEnabled(QStringLiteral("RSS/Session/EnableProcessing"));
-const QString SettingsKey_RefreshInterval(QStringLiteral("RSS/Session/RefreshInterval"));
-const QString SettingsKey_MaxArticlesPerFeed(QStringLiteral("RSS/Session/MaxArticlesPerFeed"));
+const int MSECS_PER_MIN = 60000;
+const QString CONF_FOLDER_NAME(QStringLiteral("rss"));
+const QString DATA_FOLDER_NAME(QStringLiteral("rss/articles"));
+const QString FEEDS_FILE_NAME(QStringLiteral("feeds.json"));
 
 using namespace RSS;
 
 QPointer<Session> Session::m_instance = nullptr;
 
 Session::Session()
-    : m_processingEnabled(SettingsStorage::instance()->loadValue(SettingsKey_ProcessingEnabled, false).toBool())
-    , m_workingThread(new QThread(this))
-    , m_refreshInterval(SettingsStorage::instance()->loadValue(SettingsKey_RefreshInterval, 30).toUInt())
-    , m_maxArticlesPerFeed(SettingsStorage::instance()->loadValue(SettingsKey_MaxArticlesPerFeed, 50).toInt())
+    : m_workingThread {new QThread {this}}
 {
     Q_ASSERT(!m_instance); // only one instance is allowed
     m_instance = this;
 
     m_confFileStorage = new AsyncFileStorage(
-                Utils::Fs::expandPathAbs(specialFolderLocation(SpecialFolder::Config) + ConfFolderName));
+                Utils::Fs::expandPathAbs(specialFolderLocation(SpecialFolder::Config) + CONF_FOLDER_NAME));
     m_confFileStorage->moveToThread(m_workingThread);
     connect(m_workingThread, &QThread::finished, m_confFileStorage, &AsyncFileStorage::deleteLater);
     connect(m_confFileStorage, &AsyncFileStorage::failed, [](const QString &fileName, const QString &errorString)
@@ -82,7 +76,7 @@ Session::Session()
     });
 
     m_dataFileStorage = new AsyncFileStorage(
-                Utils::Fs::expandPathAbs(specialFolderLocation(SpecialFolder::Data) + DataFolderName));
+                Utils::Fs::expandPathAbs(specialFolderLocation(SpecialFolder::Data) + DATA_FOLDER_NAME));
     m_dataFileStorage->moveToThread(m_workingThread);
     connect(m_workingThread, &QThread::finished, m_dataFileStorage, &AsyncFileStorage::deleteLater);
     connect(m_dataFileStorage, &AsyncFileStorage::failed, [](const QString &fileName, const QString &errorString)
@@ -97,10 +91,9 @@ Session::Session()
     load();
 
     connect(&m_refreshTimer, &QTimer::timeout, this, &Session::refresh);
-    if (m_processingEnabled) {
-        m_refreshTimer.start(m_refreshInterval * MsecsPerMin);
-        refresh();
-    }
+
+    configure();
+    connect(Preferences::instance(), &Preferences::changed, this, &Session::configure);
 
     // Remove legacy/corrupted settings
     // (at least on Windows, QSettings is case-insensitive and it can get
@@ -140,6 +133,11 @@ Session::~Session()
 Session *Session::instance()
 {
     return m_instance;
+}
+
+int Session::maxArticlesPerFeed() const
+{
+    return m_maxArticlesPerFeed;
 }
 
 bool Session::addFolder(const QString &path, QString *error)
@@ -247,7 +245,7 @@ Item *Session::itemByPath(const QString &path) const
 
 void Session::load()
 {
-    QFile itemsFile(m_confFileStorage->storageDir().absoluteFilePath(FeedsFileName));
+    QFile itemsFile(m_confFileStorage->storageDir().absoluteFilePath(FEEDS_FILE_NAME));
     if (!itemsFile.exists()) {
         loadLegacy();
         return;
@@ -369,7 +367,7 @@ void Session::loadLegacy()
 
 void Session::store()
 {
-    m_confFileStorage->store(FeedsFileName, QJsonDocument(rootFolder()->toJsonValue().toObject()).toJson());
+    m_confFileStorage->store(FEEDS_FILE_NAME, QJsonDocument(rootFolder()->toJsonValue().toObject()).toJson());
 }
 
 Folder *Session::prepareItemDest(const QString &path, QString *error)
@@ -433,23 +431,6 @@ bool Session::isProcessingEnabled() const
     return m_processingEnabled;
 }
 
-void Session::setProcessingEnabled(bool enabled)
-{
-    if (m_processingEnabled != enabled) {
-        m_processingEnabled = enabled;
-        SettingsStorage::instance()->storeValue(SettingsKey_ProcessingEnabled, m_processingEnabled);
-        if (m_processingEnabled) {
-            m_refreshTimer.start(m_refreshInterval * MsecsPerMin);
-            refresh();
-        }
-        else {
-            m_refreshTimer.stop();
-        }
-
-        emit processingStateChanged(m_processingEnabled);
-    }
-}
-
 AsyncFileStorage *Session::confFileStorage() const
 {
     return m_confFileStorage;
@@ -475,20 +456,6 @@ Feed *Session::feedByURL(const QString &url) const
     return m_feedsByURL.value(url);
 }
 
-uint Session::refreshInterval() const
-{
-    return m_refreshInterval;
-}
-
-void Session::setRefreshInterval(const uint refreshInterval)
-{
-    if (m_refreshInterval != refreshInterval) {
-        SettingsStorage::instance()->storeValue(SettingsKey_RefreshInterval, refreshInterval);
-        m_refreshInterval = refreshInterval;
-        m_refreshTimer.start(m_refreshInterval * MsecsPerMin);
-    }
-}
-
 QThread *Session::workingThread() const
 {
     return m_workingThread;
@@ -512,6 +479,33 @@ void Session::handleFeedTitleChanged(Feed *feed)
         moveItem(feed, Item::joinPath(Item::parentPath(feed->path()), feed->title()));
 }
 
+void Session::configure()
+{
+    const bool wasEnabled = m_processingEnabled;
+    const int currentMaxArticlesPerFeed = m_maxArticlesPerFeed;
+    const int currentRefreshInterval = m_refreshTimer.interval() / MSECS_PER_MIN;
+
+    const Preferences *pref = Preferences::instance();
+    m_processingEnabled = pref->isRSSProcessingEnabled();
+    m_maxArticlesPerFeed = pref->getRSSMaxArticlesPerFeed();
+    const int refreshInterval = pref->getRSSRefreshInterval();
+
+    if (m_maxArticlesPerFeed != currentMaxArticlesPerFeed)
+        emit maxArticlesPerFeedChanged(m_maxArticlesPerFeed);
+
+    if (m_processingEnabled && (!wasEnabled || (refreshInterval != currentRefreshInterval)))
+        m_refreshTimer.start(refreshInterval * MSECS_PER_MIN);
+
+    if (wasEnabled && !m_processingEnabled)
+        m_refreshTimer.stop();
+
+    if (m_processingEnabled != wasEnabled) {
+        if (m_processingEnabled)
+            refresh();
+        emit processingStateChanged(m_processingEnabled);
+    }
+}
+
 QUuid Session::generateUID() const
 {
     QUuid uid = QUuid::createUuid();
@@ -519,20 +513,6 @@ QUuid Session::generateUID() const
         uid = QUuid::createUuid();
 
     return uid;
-}
-
-int Session::maxArticlesPerFeed() const
-{
-    return m_maxArticlesPerFeed;
-}
-
-void Session::setMaxArticlesPerFeed(const int n)
-{
-    if (m_maxArticlesPerFeed != n) {
-        m_maxArticlesPerFeed = n;
-        SettingsStorage::instance()->storeValue(SettingsKey_MaxArticlesPerFeed, n);
-        emit maxArticlesPerFeedChanged(n);
-    }
 }
 
 void Session::refresh()

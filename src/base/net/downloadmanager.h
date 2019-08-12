@@ -141,7 +141,7 @@ namespace Net
     private:
         explicit DownloadManager(QObject *parent = nullptr);
 
-        void applyProxySettings();
+        void configure();
         void handleReplyFinished(const QNetworkReply *reply);
 
         static DownloadManager *m_instance;

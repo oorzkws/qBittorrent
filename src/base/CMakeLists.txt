@@ -39,7 +39,7 @@ net/geoipmanager.h
 net/portforwarder.h
 net/private/downloadhandlerimpl.h
 net/private/geoipdatabase.h
-net/proxyconfigurationmanager.h
+net/proxytype.h
 net/reverseresolution.h
 net/smtp.h
 private/profile_p.h
@@ -73,6 +73,7 @@ iconprovider.h
 indexrange.h
 logger.h
 preferences.h
+preferencesbase.h
 profile.h
 scanfoldersmodel.h
 settingsstorage.h
@@ -114,7 +115,6 @@ net/geoipmanager.cpp
 net/portforwarder.cpp
 net/private/downloadhandlerimpl.cpp
 net/private/geoipdatabase.cpp
-net/proxyconfigurationmanager.cpp
 net/reverseresolution.cpp
 net/smtp.cpp
 private/profile_p.cpp
@@ -144,6 +144,7 @@ filesystemwatcher.cpp
 iconprovider.cpp
 logger.cpp
 preferences.cpp
+preferencesbase.cpp
 profile.cpp
 scanfoldersmodel.cpp
 settingsstorage.cpp

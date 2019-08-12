@@ -33,17 +33,17 @@
 #include <QDebug>
 
 #include "base/logger.h"
-#include "base/settingsstorage.h"
+#include "base/preferences.h"
 
 const QString KEY_ENABLED = QStringLiteral("Network/PortForwardingEnabled");
 
 PortForwarderImpl::PortForwarderImpl(lt::session *provider, QObject *parent)
     : Net::PortForwarder {parent}
-    , m_active {SettingsStorage::instance()->loadValue(KEY_ENABLED, true).toBool()}
+    , m_active {false}
     , m_provider {provider}
 {
-    if (m_active)
-        start();
+    configure();
+    connect(Preferences::instance(), &Preferences::changed, this, &PortForwarderImpl::configure);
 }
 
 PortForwarderImpl::~PortForwarderImpl()
@@ -51,29 +51,11 @@ PortForwarderImpl::~PortForwarderImpl()
     stop();
 }
 
-bool PortForwarderImpl::isEnabled() const
-{
-    return m_active;
-}
-
-void PortForwarderImpl::setEnabled(const bool enabled)
-{
-    if (m_active != enabled) {
-        if (enabled)
-            start();
-        else
-            stop();
-
-        m_active = enabled;
-        SettingsStorage::instance()->storeValue(KEY_ENABLED, enabled);
-    }
-}
-
 void PortForwarderImpl::addPort(const quint16 port)
 {
     if (!m_mappedPorts.contains(port)) {
         m_mappedPorts.insert(port, {});
-        if (isEnabled())
+        if (m_active)
             m_mappedPorts[port] = {m_provider->add_port_mapping(lt::session::tcp, port, port)};
     }
 }
@@ -81,12 +63,25 @@ void PortForwarderImpl::addPort(const quint16 port)
 void PortForwarderImpl::deletePort(const quint16 port)
 {
     if (m_mappedPorts.contains(port)) {
-        if (isEnabled()) {
+        if (m_active) {
             for (const LTPortMapping &portMapping : m_mappedPorts[port])
             m_provider->delete_port_mapping(portMapping);
         }
         m_mappedPorts.remove(port);
     }
+}
+
+void PortForwarderImpl::configure()
+{
+    const bool isEnabled = Preferences::instance()->isPortForwardingEnabled();
+    if (m_active == isEnabled)
+        return;
+
+    m_active = isEnabled;
+    if (m_active)
+        start();
+    else
+        stop();
 }
 
 void PortForwarderImpl::start()

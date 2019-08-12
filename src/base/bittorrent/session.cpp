@@ -77,7 +77,7 @@
 #include "base/global.h"
 #include "base/logger.h"
 #include "base/net/downloadmanager.h"
-#include "base/net/proxyconfigurationmanager.h"
+#include "base/preferences.h"
 #include "base/profile.h"
 #include "base/torrentfileguard.h"
 #include "base/torrentfilter.h"
@@ -292,50 +292,6 @@ namespace
         return expanded;
     }
 
-    template <typename T>
-    struct LowerLimited
-    {
-        LowerLimited(T limit, T ret)
-            : m_limit(limit)
-            , m_ret(ret)
-        {
-        }
-
-        explicit LowerLimited(T limit)
-            : LowerLimited(limit, limit)
-        {
-        }
-
-        T operator()(T val) const
-        {
-            return val <= m_limit ? m_ret : val;
-        }
-
-    private:
-        const T m_limit;
-        const T m_ret;
-    };
-
-    template <typename T>
-    LowerLimited<T> lowerLimited(T limit) { return LowerLimited<T>(limit); }
-
-    template <typename T>
-    LowerLimited<T> lowerLimited(T limit, T ret) { return LowerLimited<T>(limit, ret); }
-
-    template <typename T>
-    std::function<T (const T&)> clampValue(const T lower, const T upper)
-    {
-        // TODO: change return type to `auto` when using C++17
-        return [lower, upper](const T value) -> T
-        {
-            if (value < lower)
-                return lower;
-            if (value > upper)
-                return upper;
-            return value;
-        };
-    }
-
 #ifdef Q_OS_WIN
     QString convertIfaceNameToGuid(const QString &name)
     {
@@ -516,9 +472,7 @@ Session::Session(QObject *parent)
 
     enableTracker(isTrackerEnabled());
 
-    connect(Net::ProxyConfigurationManager::instance()
-        , &Net::ProxyConfigurationManager::proxyConfigurationChanged
-        , this, &Session::configureDeferred);
+    connect(Preferences::instance(), &Preferences::changed, this, &Session::configureDeferred);
 
     // Network configuration monitor
     connect(m_networkManager, &QNetworkConfigurationManager::onlineStateChanged, this, &Session::networkOnlineStateChanged);
@@ -1247,6 +1201,8 @@ void Session::initMetrics()
 
 void Session::loadLTSettings(lt::settings_pack &settingsPack)
 {
+    const Preferences *pref = Preferences::instance();
+
     // from libtorrent doc:
     // It will not take affect until the listen_interfaces settings is updated
     settingsPack.set_int(lt::settings_pack::listen_queue_size, socketBacklogSize());
@@ -1272,10 +1228,8 @@ void Session::loadLTSettings(lt::settings_pack &settingsPack)
     }
 
     // proxy
-    const auto proxyManager = Net::ProxyConfigurationManager::instance();
-    const Net::ProxyConfiguration proxyConfig = proxyManager->proxyConfiguration();
-
-    switch (proxyConfig.type) {
+    const Net::ProxyType proxyType = pref->proxyType();
+    switch (proxyType) {
     case Net::ProxyType::HTTP:
         settingsPack.set_int(lt::settings_pack::proxy_type, lt::settings_pack::http);
         break;
@@ -1296,13 +1250,13 @@ void Session::loadLTSettings(lt::settings_pack &settingsPack)
         settingsPack.set_int(lt::settings_pack::proxy_type, lt::settings_pack::none);
     }
 
-    if (proxyConfig.type != Net::ProxyType::None) {
-        settingsPack.set_str(lt::settings_pack::proxy_hostname, proxyConfig.ip.toStdString());
-        settingsPack.set_int(lt::settings_pack::proxy_port, proxyConfig.port);
+    if (proxyType != Net::ProxyType::None) {
+        settingsPack.set_str(lt::settings_pack::proxy_hostname, pref->proxyIP().toStdString());
+        settingsPack.set_int(lt::settings_pack::proxy_port, pref->proxyPort());
 
-        if (proxyManager->isAuthenticationRequired()) {
-            settingsPack.set_str(lt::settings_pack::proxy_username, proxyConfig.username.toStdString());
-            settingsPack.set_str(lt::settings_pack::proxy_password, proxyConfig.password.toStdString());
+        if (Net::isProxyAuthenticationRequired(proxyType)) {
+            settingsPack.set_str(lt::settings_pack::proxy_username, pref->proxyUsername().toStdString());
+            settingsPack.set_str(lt::settings_pack::proxy_password, pref->proxyPassword().toStdString());
         }
 
         settingsPack.set_bool(lt::settings_pack::proxy_peer_connections, isProxyPeerConnectionsEnabled());

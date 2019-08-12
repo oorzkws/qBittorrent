@@ -68,7 +68,6 @@
 #include "base/logger.h"
 #include "base/net/downloadmanager.h"
 #include "base/net/geoipmanager.h"
-#include "base/net/proxyconfigurationmanager.h"
 #include "base/net/smtp.h"
 #include "base/preferences.h"
 #include "base/profile.h"
@@ -76,7 +75,6 @@
 #include "base/rss/rss_session.h"
 #include "base/scanfoldersmodel.h"
 #include "base/search/searchpluginmanager.h"
-#include "base/settingsstorage.h"
 #include "base/utils/fs.h"
 #include "base/utils/misc.h"
 #include "base/utils/string.h"
@@ -97,29 +95,8 @@
 
 namespace
 {
-#define SETTINGS_KEY(name) "Application/" name
-
-    // FileLogger properties keys
-#define FILELOGGER_SETTINGS_KEY(name) QStringLiteral(SETTINGS_KEY("FileLogger/") name)
-    const QString KEY_FILELOGGER_ENABLED = FILELOGGER_SETTINGS_KEY("Enabled");
-    const QString KEY_FILELOGGER_PATH = FILELOGGER_SETTINGS_KEY("Path");
-    const QString KEY_FILELOGGER_BACKUP = FILELOGGER_SETTINGS_KEY("Backup");
-    const QString KEY_FILELOGGER_DELETEOLD = FILELOGGER_SETTINGS_KEY("DeleteOld");
-    const QString KEY_FILELOGGER_MAXSIZEBYTES = FILELOGGER_SETTINGS_KEY("MaxSizeBytes");
-    const QString KEY_FILELOGGER_AGE = FILELOGGER_SETTINGS_KEY("Age");
-    const QString KEY_FILELOGGER_AGETYPE = FILELOGGER_SETTINGS_KEY("AgeType");
-
-    // just a shortcut
-    inline SettingsStorage *settings() { return  SettingsStorage::instance(); }
-
-    const QString LOG_FOLDER = QStringLiteral("logs");
     const QChar PARAMS_SEPARATOR = '|';
-
     const QString DEFAULT_PORTABLE_MODE_PROFILE_DIR = QStringLiteral("profile");
-
-    const int MIN_FILELOG_SIZE = 1024; // 1KiB
-    const int MAX_FILELOG_SIZE = 1000 * 1024 * 1024; // 1000MiB
-    const int DEFAULT_FILELOG_SIZE = 65 * 1024; // 65KiB
 
 #if !defined(DISABLE_GUI)
     const int PIXMAP_CACHE_SIZE = 64 * 1024 * 1024;  // 64MiB
@@ -159,6 +136,7 @@ Application::Application(int &argc, char **argv)
     Logger::initInstance();
     SettingsStorage::initInstance();
     Preferences::initInstance();
+    connect(Preferences::instance(), &Preferences::changed, this, &Application::configure);
 
     initializeTranslation();
 
@@ -171,17 +149,16 @@ Application::Application(int &argc, char **argv)
     connect(this, &QGuiApplication::commitDataRequest, this, &Application::shutdownCleanup, Qt::DirectConnection);
 #endif
 
-    if (isFileLoggerEnabled())
-        m_fileLogger = new FileLogger(fileLoggerPath(), isFileLoggerBackup(), fileLoggerMaxSize(), isFileLoggerDeleteOld(), fileLoggerAge(), static_cast<FileLogger::FileLogAgeType>(fileLoggerAgeType()));
+    configure();
 
-    Logger::instance()->addMessage(tr("qBittorrent %1 started", "qBittorrent v3.2.0alpha started").arg(QBT_VERSION));
+    LogMsg(tr("qBittorrent %1 started", "qBittorrent v3.2.0alpha started").arg(QBT_VERSION));
     if (portableModeEnabled) {
-        Logger::instance()->addMessage(tr("Running in portable mode. Auto detected profile folder at: %1").arg(profileDir));
+        LogMsg(tr("Running in portable mode. Auto detected profile folder at: %1").arg(profileDir));
         if (m_commandLineArgs.relativeFastresumePaths)
-            Logger::instance()->addMessage(tr("Redundant command line flag detected: \"%1\". Portable mode implies relative fastresume.").arg("--relative-fastresume"), Log::WARNING); // to avoid translating the `--relative-fastresume` string
+            LogMsg(tr("Redundant command line flag detected: \"%1\". Portable mode implies relative fastresume.").arg("--relative-fastresume"), Log::WARNING); // to avoid translating the `--relative-fastresume` string
     }
     else {
-        Logger::instance()->addMessage(tr("Using config directory: %1").arg(Profile::instance()->location(SpecialFolder::Config)));
+        LogMsg(tr("Using config directory: %1").arg(Profile::instance()->location(SpecialFolder::Config)));
     }
 }
 
@@ -204,91 +181,27 @@ const QBtCommandLineParameters &Application::commandLineArgs() const
     return m_commandLineArgs;
 }
 
-bool Application::isFileLoggerEnabled() const
+void Application::configure()
 {
-    return settings()->loadValue(KEY_FILELOGGER_ENABLED, true).toBool();
-}
+    const auto *pref = Preferences::instance();
 
-void Application::setFileLoggerEnabled(const bool value)
-{
-    if (value && !m_fileLogger)
-        m_fileLogger = new FileLogger(fileLoggerPath(), isFileLoggerBackup(), fileLoggerMaxSize(), isFileLoggerDeleteOld(), fileLoggerAge(), static_cast<FileLogger::FileLogAgeType>(fileLoggerAgeType()));
-    else if (!value)
+    if (pref->isFileLoggerEnabled()) {
+        if (!m_fileLogger) {
+            m_fileLogger = new FileLogger {
+                pref->fileLoggerPath(), pref->isFileLoggerBackup(), pref->fileLoggerMaxSize()
+                , pref->isFileLoggerDeleteOld(), pref->fileLoggerAge()
+                , static_cast<FileLogger::FileLogAgeType>(pref->fileLoggerAgeType())};
+        }
+        else {
+            m_fileLogger->changePath(pref->fileLoggerPath());
+            m_fileLogger->setBackup(pref->isFileLoggerBackup());
+            m_fileLogger->deleteOld(pref->fileLoggerAge(), static_cast<FileLogger::FileLogAgeType>(pref->fileLoggerAgeType()));
+            m_fileLogger->setMaxSize(pref->fileLoggerMaxSize());
+        }
+    }
+    else {
         delete m_fileLogger;
-    settings()->storeValue(KEY_FILELOGGER_ENABLED, value);
-}
-
-QString Application::fileLoggerPath() const
-{
-    return settings()->loadValue(KEY_FILELOGGER_PATH,
-            {specialFolderLocation(SpecialFolder::Data) + LOG_FOLDER}).toString();
-}
-
-void Application::setFileLoggerPath(const QString &path)
-{
-    if (m_fileLogger)
-        m_fileLogger->changePath(path);
-    settings()->storeValue(KEY_FILELOGGER_PATH, path);
-}
-
-bool Application::isFileLoggerBackup() const
-{
-    return settings()->loadValue(KEY_FILELOGGER_BACKUP, true).toBool();
-}
-
-void Application::setFileLoggerBackup(const bool value)
-{
-    if (m_fileLogger)
-        m_fileLogger->setBackup(value);
-    settings()->storeValue(KEY_FILELOGGER_BACKUP, value);
-}
-
-bool Application::isFileLoggerDeleteOld() const
-{
-    return settings()->loadValue(KEY_FILELOGGER_DELETEOLD, true).toBool();
-}
-
-void Application::setFileLoggerDeleteOld(const bool value)
-{
-    if (value && m_fileLogger)
-        m_fileLogger->deleteOld(fileLoggerAge(), static_cast<FileLogger::FileLogAgeType>(fileLoggerAgeType()));
-    settings()->storeValue(KEY_FILELOGGER_DELETEOLD, value);
-}
-
-int Application::fileLoggerMaxSize() const
-{
-    const int val = settings()->loadValue(KEY_FILELOGGER_MAXSIZEBYTES, DEFAULT_FILELOG_SIZE).toInt();
-    return std::min(std::max(val, MIN_FILELOG_SIZE), MAX_FILELOG_SIZE);
-}
-
-void Application::setFileLoggerMaxSize(const int bytes)
-{
-    const int clampedValue = std::min(std::max(bytes, MIN_FILELOG_SIZE), MAX_FILELOG_SIZE);
-    if (m_fileLogger)
-        m_fileLogger->setMaxSize(clampedValue);
-    settings()->storeValue(KEY_FILELOGGER_MAXSIZEBYTES, clampedValue);
-}
-
-int Application::fileLoggerAge() const
-{
-    const int val = settings()->loadValue(KEY_FILELOGGER_AGE, 1).toInt();
-    return std::min(std::max(val, 1), 365);
-}
-
-void Application::setFileLoggerAge(const int value)
-{
-    settings()->storeValue(KEY_FILELOGGER_AGE, std::min(std::max(value, 1), 365));
-}
-
-int Application::fileLoggerAgeType() const
-{
-    const int val = settings()->loadValue(KEY_FILELOGGER_AGETYPE, 1).toInt();
-    return ((val < 0) || (val > 2)) ? 1 : val;
-}
-
-void Application::setFileLoggerAgeType(const int value)
-{
-    settings()->storeValue(KEY_FILELOGGER_AGETYPE, ((value < 0) || (value > 2)) ? 1 : value);
+    }
 }
 
 void Application::processMessage(const QString &message)
@@ -414,7 +327,7 @@ void Application::torrentFinished(BitTorrent::TorrentHandle *const torrent)
 
     // Mail notification
     if (pref->isMailNotificationEnabled()) {
-        Logger::instance()->addMessage(tr("Torrent: %1, sending mail notification").arg(torrent->name()));
+        LogMsg(tr("Torrent: %1, sending mail notification").arg(torrent->name()));
         sendNotificationEmail(torrent);
     }
 }
@@ -530,7 +443,7 @@ void Application::processParams(const QStringList &params)
         // skipTorrentDialog is false, meaning that the application setting
         // should be overridden.
         const bool showDialogForThisTorrent =
-            ((AddNewTorrentDialog::isEnabled() && skipTorrentDialog == TriStateBool::Undefined)
+            ((Preferences::instance()->isAddTorrentDialogEnabled() && (skipTorrentDialog == TriStateBool::Undefined))
              || skipTorrentDialog == TriStateBool::False);
         if (showDialogForThisTorrent)
             AddNewTorrentDialog::show(param, torrentParams, m_window);
@@ -542,7 +455,6 @@ void Application::processParams(const QStringList &params)
 
 int Application::exec(const QStringList &params)
 {
-    Net::ProxyConfigurationManager::initInstance();
     Net::DownloadManager::initInstance();
     IconProvider::initInstance();
 
@@ -749,7 +661,6 @@ void Application::cleanup()
     Net::GeoIPManager::freeInstance();
 #endif
     Net::DownloadManager::freeInstance();
-    Net::ProxyConfigurationManager::freeInstance();
     Preferences::freeInstance();
     SettingsStorage::freeInstance();
     delete m_fileLogger;

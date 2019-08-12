@@ -41,7 +41,6 @@
 #include "base/unicodestrings.h"
 #include "app/application.h"
 #include "gui/addnewtorrentdialog.h"
-#include "gui/mainwindow.h"
 
 namespace
 {
@@ -241,12 +240,11 @@ void AdvancedSettings::saveAdvancedSettings()
     // Stop tracker timeout
     session->setStopTrackerTimeout(m_spinBoxStopTrackerTimeout.value());
     // Program notification
-    MainWindow *const mainWindow = static_cast<Application*>(QCoreApplication::instance())->mainWindow();
-    mainWindow->setNotificationsEnabled(m_checkBoxProgramNotifications.isChecked());
-    mainWindow->setTorrentAddedNotificationsEnabled(m_checkBoxTorrentAddedNotifications.isChecked());
+    pref->setNotificationsEnabled(m_checkBoxProgramNotifications.isChecked());
+    pref->setTorrentAddedNotificationsEnabled(m_checkBoxTorrentAddedNotifications.isChecked());
     // Misc GUI properties
-    mainWindow->setDownloadTrackerFavicon(m_checkBoxTrackerFavicon.isChecked());
-    AddNewTorrentDialog::setSavePathHistoryLength(m_spinBoxSavePathHistoryLength.value());
+    pref->setDownloadTrackerFavicon(m_checkBoxTrackerFavicon.isChecked());
+    pref->setAddTorrentDialogSavePathHistoryLength(m_spinBoxSavePathHistoryLength.value());
     pref->setSpeedWidgetEnabled(m_checkBoxSpeedWidgetEnabled.isChecked());
 
     // Tracker
@@ -536,18 +534,17 @@ void AdvancedSettings::loadAdvancedSettings()
            , &m_spinBoxStopTrackerTimeout);
 
     // Program notifications
-    const MainWindow *const mainWindow = static_cast<Application*>(QCoreApplication::instance())->mainWindow();
-    m_checkBoxProgramNotifications.setChecked(mainWindow->isNotificationsEnabled());
+    m_checkBoxProgramNotifications.setChecked(pref->isNotificationsEnabled());
     addRow(PROGRAM_NOTIFICATIONS, tr("Display notifications"), &m_checkBoxProgramNotifications);
     // Torrent added notifications
-    m_checkBoxTorrentAddedNotifications.setChecked(mainWindow->isTorrentAddedNotificationsEnabled());
+    m_checkBoxTorrentAddedNotifications.setChecked(pref->isTorrentAddedNotificationsEnabled());
     addRow(TORRENT_ADDED_NOTIFICATIONS, tr("Display notifications for added torrents"), &m_checkBoxTorrentAddedNotifications);
     // Download tracker's favicon
-    m_checkBoxTrackerFavicon.setChecked(mainWindow->isDownloadTrackerFavicon());
+    m_checkBoxTrackerFavicon.setChecked(pref->isDownloadTrackerFavicon());
     addRow(DOWNLOAD_TRACKER_FAVICON, tr("Download tracker's favicon"), &m_checkBoxTrackerFavicon);
     // Save path history length
-    m_spinBoxSavePathHistoryLength.setRange(AddNewTorrentDialog::minPathHistoryLength, AddNewTorrentDialog::maxPathHistoryLength);
-    m_spinBoxSavePathHistoryLength.setValue(AddNewTorrentDialog::savePathHistoryLength());
+    m_spinBoxSavePathHistoryLength.setRange(Preferences::ADDTORRENTDIALOG_MINPATHHISTORYLENGTH, Preferences::ADDTORRENTDIALOG_MAXPATHHISTORYLENGTH);
+    m_spinBoxSavePathHistoryLength.setValue(pref->addTorrentDialogSavePathHistoryLength());
     addRow(SAVE_PATH_HISTORY_LENGTH, tr("Save path history length"), &m_spinBoxSavePathHistoryLength);
     // Enable speed graphs
     m_checkBoxSpeedWidgetEnabled.setChecked(pref->isSpeedWidgetEnabled());

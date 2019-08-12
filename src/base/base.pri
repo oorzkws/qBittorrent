@@ -44,10 +44,11 @@ HEADERS += \
     $$PWD/net/portforwarder.h \
     $$PWD/net/private/downloadhandlerimpl.h \
     $$PWD/net/private/geoipdatabase.h \
-    $$PWD/net/proxyconfigurationmanager.h \
+    $$PWD/net/proxytype.h \
     $$PWD/net/reverseresolution.h \
     $$PWD/net/smtp.h \
     $$PWD/preferences.h \
+    $$PWD/preferencesbase.h \
     $$PWD/private/profile_p.h \
     $$PWD/profile.h \
     $$PWD/rss/private/rss_parser.h \
@@ -117,10 +118,10 @@ SOURCES += \
     $$PWD/net/portforwarder.cpp \
     $$PWD/net/private/downloadhandlerimpl.cpp \
     $$PWD/net/private/geoipdatabase.cpp \
-    $$PWD/net/proxyconfigurationmanager.cpp \
     $$PWD/net/reverseresolution.cpp \
     $$PWD/net/smtp.cpp \
     $$PWD/preferences.cpp \
+    $$PWD/preferencesbase.cpp \
     $$PWD/private/profile_p.cpp \
     $$PWD/profile.cpp \
     $$PWD/rss/private/rss_parser.cpp \

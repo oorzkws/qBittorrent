@@ -103,6 +103,7 @@ signals:
     void checkForUpdatesFailed(const QString &reason);
 
 private:
+    void configure();
     void update();
     void updateNova();
     void parseVersionInfo(const QByteArray &info);

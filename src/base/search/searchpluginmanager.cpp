@@ -86,6 +86,9 @@ SearchPluginManager::SearchPluginManager()
     Q_ASSERT(!m_instance); // only one instance is allowed
     m_instance = this;
 
+    configure();
+    connect(Preferences::instance(), &Preferences::changed, this, &SearchPluginManager::configure);
+
     updateNova();
     update();
 }
@@ -352,6 +355,48 @@ QString SearchPluginManager::engineLocation()
     }
 
     return location;
+}
+
+void SearchPluginManager::configure()
+{
+    const Preferences *pref = Preferences::instance();
+
+    const Net::ProxyType proxyType = pref->proxyType();
+    const QString proxyIP = pref->proxyIP();
+    const QString proxyPort = QString::number(pref->proxyPort());
+    const QString proxyUsername = pref->proxyUsername();
+    const QString proxyPassword = pref->proxyPassword();
+
+    // Define environment variables for urllib in search engine plugins
+    QString proxyStrHTTP, proxyStrSOCK;
+    if (!pref->isProxyOnlyForTorrents()) {
+        switch (proxyType) {
+        case Net::ProxyType::HTTP_PW:
+            proxyStrHTTP = QString("http://%1:%2@%3:%4")
+                    .arg(proxyUsername, proxyPassword, proxyIP, proxyPort);
+            break;
+        case Net::ProxyType::HTTP:
+            proxyStrHTTP = QString("http://%1:%2").arg(proxyIP, proxyPort);
+            break;
+        case Net::ProxyType::SOCKS5:
+            proxyStrSOCK = QString("%1:%2").arg(proxyIP, proxyPort);
+            break;
+        case Net::ProxyType::SOCKS5_PW:
+            proxyStrSOCK = QString("%1:%2@%3:%4")
+                    .arg(proxyUsername, proxyPassword, proxyIP, proxyPort);
+            break;
+        default:
+            qDebug("Disabling HTTP communications proxy");
+        }
+
+        qDebug("HTTP communications proxy string: %s"
+               , qUtf8Printable((proxyType == Net::ProxyType::SOCKS5) || (proxyType == Net::ProxyType::SOCKS5_PW)
+                                ? proxyStrSOCK : proxyStrHTTP));
+    }
+
+    qputenv("http_proxy", proxyStrHTTP.toLocal8Bit());
+    qputenv("https_proxy", proxyStrHTTP.toLocal8Bit());
+    qputenv("sock_proxy", proxyStrSOCK.toLocal8Bit());
 }
 
 void SearchPluginManager::versionInfoDownloadFinished(const Net::DownloadResult &result)

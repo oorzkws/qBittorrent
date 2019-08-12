@@ -59,12 +59,66 @@
 
 #include "algorithm.h"
 #include "global.h"
+#include "profile.h"
 #include "settingsstorage.h"
 #include "utils/fs.h"
 
-Preferences *Preferences::m_instance = nullptr;
+namespace
+{
+    // Network
+    const QString PORTFORWARDING_ENABLED {QStringLiteral("Network/PortForwardingEnabled")};
 
-Preferences::Preferences() = default;
+    const QString PROXY_ONLYFORTORRENTS = {QStringLiteral("Network/Proxy/OnlyForTorrents")};
+    const QString PROXY_TYPE {QStringLiteral("Network/Proxy/Type")};
+    const QString PROXY_IP {QStringLiteral("Network/Proxy/IP")};
+    const QString PROXY_PORT {QStringLiteral("Network/Proxy/Port")};
+    const QString PROXY_USERNAME {QStringLiteral("Network/Proxy/Username")};
+    const QString PROXY_PASSWORD {QStringLiteral("Network/Proxy/Password")};
+
+    // FileLogger
+    const QString FILELOGGER_LOGFOLDER {QStringLiteral("logs")};
+    const int FILELOGGER_MIN_FILESIZE = 1024; // 1KiB
+    const int FILELOGGER_MAX_FILESIZE = 1000 * 1024 * 1024; // 1000MiB
+    const int FILELOGGER_DEFAULT_FILESIZE = 65 * 1024; // 65KiB
+    const QString FILELOGGER_ENABLED {QStringLiteral("Application/FileLogger/Enabled")};
+    const QString FILELOGGER_PATH {QStringLiteral("Application/FileLogger/Path")};
+    const QString FILELOGGER_BACKUP {QStringLiteral("Application/FileLogger/Backup")};
+    const QString FILELOGGER_DELETEOLD {QStringLiteral("Application/FileLogger/DeleteOld")};
+    const QString FILELOGGER_MAXSIZEBYTES {QStringLiteral("Application/FileLogger/MaxSizeBytes")};
+    const QString FILELOGGER_AGE {QStringLiteral("Application/FileLogger/Age")};
+    const QString FILELOGGER_AGETYPE {QStringLiteral("Application/FileLogger/AgeType")};
+
+    // RSS
+    const QString RSS_PROCESSINGENABLED {QStringLiteral("RSS/Session/EnableProcessing")};
+    const QString RSS_REFRESHINTERVAL {QStringLiteral("RSS/Session/RefreshInterval")};
+    const QString RSS_MAXARTICLESPERFEED {QStringLiteral("RSS/Session/MaxArticlesPerFeed")};
+    const QString RSS_AUTODOWNLOADINGENABLED {QStringLiteral("RSS/AutoDownloader/EnableProcessing")};
+    const QString RSS_SMARTEPISODEFILTER {QStringLiteral("RSS/AutoDownloader/SmartEpisodeFilter")};
+    const QString RSS_DOWNLOADREPACKS {QStringLiteral("RSS/AutoDownloader/DownloadRepacks")};
+
+    // AddNewTorrentDialog
+    const QString ADDTORRENTDIALOG_ENABLED {QStringLiteral("AddNewTorrentDialog/Enabled")};
+    const QString ADDTORRENTDIALOG_TOPLEVEL {QStringLiteral("AddNewTorrentDialog/TopLevel")};
+    const QString ADDTORRENTDIALOG_SAVEPATHHISTORYLENGTH {QStringLiteral("AddNewTorrentDialog/SavePathHistoryLength")};
+
+    // ExecutionLog
+    const QString LOGWIDGET_ENABLED {QStringLiteral("GUI/Log/Enabled")};
+    const QString LOGWIDGET_TYPES {QStringLiteral("GUI/Log/Types")};
+
+    // Notifications
+    const QString NOTIFICATIONS_ENABLED {QStringLiteral("GUI/Notifications/Enabled")};
+    const QString NOTIFICATIONS_TORRENTADDED {QStringLiteral("GUI/Notifications/TorrentAdded")};
+
+    // Misc
+    const QString DOWNLOAD_TRACKER_FAVICON {QStringLiteral("GUI/DownloadTrackerFavicon")};
+
+    // BitTorrent
+}
+
+constexpr int Preferences::ADDTORRENTDIALOG_MINPATHHISTORYLENGTH;
+constexpr int Preferences::ADDTORRENTDIALOG_MAXPATHHISTORYLENGTH;
+
+Preferences *Preferences::m_instance = nullptr;
 
 Preferences *Preferences::instance()
 {
@@ -83,17 +137,316 @@ void Preferences::freeInstance()
     m_instance = nullptr;
 }
 
-const QVariant Preferences::value(const QString &key, const QVariant &defaultValue) const
+// GUI options
+
+bool Preferences::isAddTorrentDialogEnabled() const
 {
-    return SettingsStorage::instance()->loadValue(key, defaultValue);
+    return value(ADDTORRENTDIALOG_ENABLED, true).toBool();
 }
 
-void Preferences::setValue(const QString &key, const QVariant &value)
+void Preferences::setAddTorrentDialogEnabled(bool value)
 {
-    SettingsStorage::instance()->storeValue(key, value);
+    setValue(ADDTORRENTDIALOG_ENABLED, value);
+}
+
+bool Preferences::isAddTorrentDialogTopLevel() const
+{
+    return value(ADDTORRENTDIALOG_TOPLEVEL, true).toBool();
+}
+
+void Preferences::setAddTorrentDialogTopLevel(bool value)
+{
+    setValue(ADDTORRENTDIALOG_TOPLEVEL, value);
+}
+
+int Preferences::addTorrentDialogSavePathHistoryLength() const
+{
+    const int defaultHistoryLength = 8;
+    const int historyLength = value(ADDTORRENTDIALOG_SAVEPATHHISTORYLENGTH, defaultHistoryLength).toInt();
+    return qBound(ADDTORRENTDIALOG_MINPATHHISTORYLENGTH, historyLength, ADDTORRENTDIALOG_MAXPATHHISTORYLENGTH);
+}
+
+void Preferences::setAddTorrentDialogSavePathHistoryLength(int value)
+{
+    const int clampedValue = qBound(ADDTORRENTDIALOG_MINPATHHISTORYLENGTH, value, ADDTORRENTDIALOG_MAXPATHHISTORYLENGTH);
+    const int oldValue = addTorrentDialogSavePathHistoryLength();
+    if (clampedValue == oldValue)
+        return;
+
+    setValue(ADDTORRENTDIALOG_SAVEPATHHISTORYLENGTH, clampedValue);
+}
+
+bool Preferences::isLogWidgetEnabled() const
+{
+    return value(LOGWIDGET_ENABLED, false).toBool();
+}
+
+void Preferences::setLogWidgetEnabled(bool value)
+{
+    setValue(LOGWIDGET_ENABLED, value);
+}
+
+int Preferences::logWidgetMsgTypes() const
+{
+    // as default value we need all the bits set
+    // -1 is considered the portable way to achieve that
+    return value(LOGWIDGET_TYPES, -1).toInt();
+}
+
+void Preferences::setLogWidgetMsgTypes(const int value)
+{
+    setValue(LOGWIDGET_TYPES, value);
+}
+
+bool Preferences::isNotificationsEnabled() const
+{
+    return value(NOTIFICATIONS_ENABLED, true).toBool();
+}
+
+void Preferences::setNotificationsEnabled(bool value)
+{
+    setValue(NOTIFICATIONS_ENABLED, value);
+}
+
+bool Preferences::isTorrentAddedNotificationsEnabled() const
+{
+    return value(NOTIFICATIONS_TORRENTADDED, false).toBool();
+}
+
+void Preferences::setTorrentAddedNotificationsEnabled(bool value)
+{
+    setValue(NOTIFICATIONS_TORRENTADDED, value);
+}
+
+bool Preferences::isDownloadTrackerFavicon() const
+{
+    return value(DOWNLOAD_TRACKER_FAVICON, false).toBool();
+}
+
+void Preferences::setDownloadTrackerFavicon(bool value)
+{
+    setValue(DOWNLOAD_TRACKER_FAVICON, value);
 }
 
 // General options
+
+bool Preferences::isFileLoggerEnabled() const
+{
+    return value(FILELOGGER_ENABLED, true).toBool();
+}
+
+void Preferences::setFileLoggerEnabled(const bool value)
+{
+    setValue(FILELOGGER_ENABLED, value);
+}
+
+QString Preferences::fileLoggerPath() const
+{
+    return value(FILELOGGER_PATH, {specialFolderLocation(SpecialFolder::Data) + FILELOGGER_LOGFOLDER}).toString();
+}
+
+void Preferences::setFileLoggerPath(const QString &path)
+{
+    setValue(FILELOGGER_PATH, path);
+}
+
+bool Preferences::isFileLoggerBackup() const
+{
+    return value(FILELOGGER_BACKUP, true).toBool();
+}
+
+void Preferences::setFileLoggerBackup(const bool value)
+{
+    setValue(FILELOGGER_BACKUP, value);
+}
+
+bool Preferences::isFileLoggerDeleteOld() const
+{
+    return value(FILELOGGER_DELETEOLD, true).toBool();
+}
+
+void Preferences::setFileLoggerDeleteOld(const bool value)
+{
+    setValue(FILELOGGER_DELETEOLD, value);
+}
+
+int Preferences::fileLoggerMaxSize() const
+{
+    const int val = value(FILELOGGER_MAXSIZEBYTES, FILELOGGER_DEFAULT_FILESIZE).toInt();
+    return std::min(std::max(val, FILELOGGER_MIN_FILESIZE), FILELOGGER_MAX_FILESIZE);
+}
+
+void Preferences::setFileLoggerMaxSize(const int bytes)
+{
+    const int clampedValue = std::min(std::max(bytes, FILELOGGER_MIN_FILESIZE), FILELOGGER_MAX_FILESIZE);
+    setValue(FILELOGGER_MAXSIZEBYTES, clampedValue);
+}
+
+int Preferences::fileLoggerAge() const
+{
+    const int val = value(FILELOGGER_AGE, 1).toInt();
+    return std::min(std::max(val, 1), 365);
+}
+
+void Preferences::setFileLoggerAge(const int value)
+{
+    setValue(FILELOGGER_AGE, std::min(std::max(value, 1), 365));
+}
+
+int Preferences::fileLoggerAgeType() const
+{
+    const int val = value(FILELOGGER_AGETYPE, 1).toInt();
+    return ((val < 0) || (val > 2)) ? 1 : val;
+}
+
+void Preferences::setFileLoggerAgeType(const int value)
+{
+    setValue(FILELOGGER_AGETYPE, ((value < 0) || (value > 2)) ? 1 : value);
+}
+
+bool Preferences::isRSSProcessingEnabled() const
+{
+    return value(RSS_PROCESSINGENABLED, false).toBool();
+}
+
+void Preferences::setRSSProcessingEnabled(bool value)
+{
+    setValue(RSS_PROCESSINGENABLED, value);
+}
+
+int Preferences::getRSSRefreshInterval() const
+{
+    return value(RSS_REFRESHINTERVAL, 30).toInt();
+}
+
+void Preferences::setRSSRefreshInterval(int value)
+{
+    setValue(RSS_REFRESHINTERVAL, value);
+}
+
+int Preferences::getRSSMaxArticlesPerFeed() const
+{
+    return value(RSS_MAXARTICLESPERFEED, 50).toInt();
+}
+
+void Preferences::setRSSMaxArticlesPerFeed(int value)
+{
+    setValue(RSS_MAXARTICLESPERFEED, value);
+}
+
+bool Preferences::isRSSAutoDownloadingEnabled() const
+{
+    return value(RSS_AUTODOWNLOADINGENABLED, false).toBool();
+}
+
+void Preferences::setRSSAutoDownloadingEnabled(bool value)
+{
+    setValue(RSS_AUTODOWNLOADINGENABLED, value);
+}
+
+QStringList Preferences::getRSSSmartEpisodeFilters() const
+{
+    const QVariant filtersSetting = value(RSS_SMARTEPISODEFILTER);
+
+    if (filtersSetting.isNull()) {
+        QStringList filters = {
+            "s(\\d+)e(\\d+)",                       // Format 1: s01e01
+            "(\\d+)x(\\d+)",                        // Format 2: 01x01
+            "(\\d{4}[.\\-]\\d{1,2}[.\\-]\\d{1,2})", // Format 3: 2017.01.01
+            "(\\d{1,2}[.\\-]\\d{1,2}[.\\-]\\d{4})"  // Format 4: 01.01.2017
+        };
+
+        return filters;
+    }
+
+    return filtersSetting.toStringList();
+}
+
+void Preferences::setRSSSmartEpisodeFilters(const QStringList &value)
+{
+    setValue(RSS_SMARTEPISODEFILTER, value);
+}
+
+bool Preferences::getRSSDownloadRepacks() const
+{
+    return value(RSS_DOWNLOADREPACKS, true).toBool();
+}
+
+void Preferences::setRSSDownloadRepacks(bool value)
+{
+    setValue(RSS_DOWNLOADREPACKS, value);
+}
+
+bool Preferences::isPortForwardingEnabled() const
+{
+    return value(PORTFORWARDING_ENABLED, true).toBool();
+}
+
+void Preferences::setPortForwardingEnabled(bool value)
+{
+    setValue(PORTFORWARDING_ENABLED, value);
+}
+
+Net::ProxyType Preferences::proxyType() const
+{
+    return static_cast<Net::ProxyType>(value(PROXY_TYPE, static_cast<int>(Net::ProxyType::None)).toInt());
+}
+
+void Preferences::setProxyType(Net::ProxyType value)
+{
+    setValue(PROXY_TYPE, static_cast<int>(value));
+}
+
+QString Preferences::proxyIP() const
+{
+    return value(PROXY_IP, QLatin1String {"0.0.0.0"}).toString();
+}
+
+void Preferences::setProxyIP(const QString &value)
+{
+    setValue(PROXY_IP, value);
+}
+
+int Preferences::proxyPort() const
+{
+    return value(PROXY_PORT, 8080).toInt();
+}
+
+void Preferences::setProxyPort(int value)
+{
+    setValue(PROXY_PORT, value);
+}
+
+QString Preferences::proxyUsername() const
+{
+    return value(PROXY_USERNAME).toString();
+}
+
+void Preferences::setProxyUsername(const QString &value)
+{
+    setValue(PROXY_USERNAME, value);
+}
+
+QString Preferences::proxyPassword() const
+{
+    return value(PROXY_PASSWORD).toString();
+}
+
+void Preferences::setProxyPassword(const QString &value)
+{
+    setValue(PROXY_PASSWORD, value);
+}
+
+bool Preferences::isProxyOnlyForTorrents() const
+{
+    return value(PROXY_ONLYFORTORRENTS).toBool() || (proxyType() == Net::ProxyType::SOCKS4);
+}
+
+void Preferences::setProxyOnlyForTorrents(bool value)
+{
+    setValue(PROXY_ONLYFORTORRENTS, value);
+}
+
 QString Preferences::getLocale() const
 {
     const QString localeName = value("Preferences/General/Locale").toString();
@@ -320,17 +673,6 @@ void Preferences::setWinStartup(const bool b)
     }
 }
 #endif // Q_OS_WIN
-
-// Downloads
-QString Preferences::lastLocationPath() const
-{
-    return Utils::Fs::toUniformPath(value("Preferences/Downloads/LastLocationPath").toString());
-}
-
-void Preferences::setLastLocationPath(const QString &path)
-{
-    setValue("Preferences/Downloads/LastLocationPath", Utils::Fs::toUniformPath(path));
-}
 
 QVariantHash Preferences::getScanDirs() const
 {
@@ -1373,26 +1715,6 @@ void Preferences::setSearchEngDisabled(const QStringList &engines)
     setValue("SearchEngines/disabledEngines", engines);
 }
 
-QString Preferences::getTorImportLastContentDir() const
-{
-    return value("TorrentImport/LastContentDir", QDir::homePath()).toString();
-}
-
-void Preferences::setTorImportLastContentDir(const QString &path)
-{
-    setValue("TorrentImport/LastContentDir", path);
-}
-
-QByteArray Preferences::getTorImportGeometry() const
-{
-    return value("TorrentImportDlg/dimensions").toByteArray();
-}
-
-void Preferences::setTorImportGeometry(const QByteArray &geometry)
-{
-    setValue("TorrentImportDlg/dimensions", geometry);
-}
-
 bool Preferences::getStatusFilterState() const
 {
     return value("TransferListFilters/statusFilterState", true).toBool();
@@ -1532,10 +1854,4 @@ bool Preferences::getSpeedWidgetGraphEnable(const int id) const
 void Preferences::setSpeedWidgetGraphEnable(const int id, const bool enable)
 {
     setValue("SpeedWidget/graph_enable_" + QString::number(id), enable);
-}
-
-void Preferences::apply()
-{
-    if (SettingsStorage::instance()->save())
-        emit changed();
 }
