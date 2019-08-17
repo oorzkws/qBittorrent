@@ -60,6 +60,7 @@ namespace RSS
 
         static const QChar PathSeparator;
 
+        static bool isValidName(const QString &name);
         static bool isValidPath(const QString &path);
         static QString joinPath(const QString &path1, const QString &path2);
         static QStringList expandPath(const QString &path);

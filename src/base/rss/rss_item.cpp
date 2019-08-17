@@ -63,6 +63,11 @@ QString Item::name() const
     return relativeName(path());
 }
 
+bool Item::isValidName(const QString &name)
+{
+    return !name.contains(Item::PathSeparator);
+}
+
 bool Item::isValidPath(const QString &path)
 {
     static const QRegularExpression re(

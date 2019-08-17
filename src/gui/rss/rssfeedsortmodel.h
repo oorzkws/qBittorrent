@@ -28,18 +28,13 @@
 
 #pragma once
 
-#include <stdexcept>
-#include <QString>
+#include <QSortFilterProxyModel>
 
-class RuntimeError : public std::runtime_error
+class RSSFeedSortModel : public QSortFilterProxyModel
 {
 public:
-    explicit RuntimeError(const QString &message = {});
-    QString message() const;
-};
+    using QSortFilterProxyModel::QSortFilterProxyModel;
 
-class BadArgumentError : public RuntimeError
-{
-public:
-    using RuntimeError::RuntimeError;
+protected:
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 };

@@ -583,7 +583,7 @@ void AutomatedRssDownloader::updateMatchingArticles()
                                        ? m_currentRule
                                        : RSS::AutoDownloader::instance()->ruleByName(ruleItem->text()));
         for (const QString &feedURL : asConst(rule.feedURLs())) {
-            auto feed = RSS::Session::instance()->feedByURL(feedURL);
+            auto *feed = RSS::Session::instance()->feedByURL(feedURL);
             if (!feed) continue; // feed doesn't exist
 
             QStringList matchingArticles;

@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2018  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,42 +26,15 @@
  * exception statement from your version.
  */
 
-#ifndef ARTICLELISTWIDGET_H
-#define ARTICLELISTWIDGET_H
+#pragma once
 
-#include <QHash>
-#include <QListWidget>
+#include <QSortFilterProxyModel>
 
-namespace RSS
+class RSSSortModel : public QSortFilterProxyModel
 {
-    class Article;
-    class Item;
-}
-
-class ArticleListWidget : public QListWidget
-{
-    Q_OBJECT
-
 public:
-    explicit ArticleListWidget(QWidget *parent);
+    using QSortFilterProxyModel::QSortFilterProxyModel;
 
-    RSS::Article *getRSSArticle(QListWidgetItem *item) const;
-    QListWidgetItem *mapRSSArticle(RSS::Article *rssArticle) const;
-
-    void setRSSItem(RSS::Item *rssItem, bool unreadOnly = false);
-
-private slots:
-    void handleArticleAdded(RSS::Article *rssArticle);
-    void handleArticleRead(RSS::Article *rssArticle);
-    void handleArticleAboutToBeRemoved(RSS::Article *rssArticle);
-
-private:
-    void checkInvariant() const;
-    QListWidgetItem *createItem(RSS::Article *article) const;
-
-    RSS::Item *m_rssItem = nullptr;
-    bool m_unreadOnly = false;
-    QHash<RSS::Article *, QListWidgetItem *> m_rssArticleToListItemMapping;
+protected:
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
 };
-
-#endif // ARTICLELISTWIDGET_H

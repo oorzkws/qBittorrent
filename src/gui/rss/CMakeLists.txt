@@ -1,16 +1,20 @@
 add_library(qbt_rss STATIC
 # headers
-articlelistwidget.h
 automatedrssdownloader.h
-feedlistwidget.h
 htmlbrowser.h
+rssfeedmodel.h
+rssfeedsortmodel.h
+rssmodel.h
+rsssortmodel.h
 rsswidget.h
 
 #sources
-articlelistwidget.cpp
 automatedrssdownloader.cpp
-feedlistwidget.cpp
 htmlbrowser.cpp
+rssfeedmodel.cpp
+rssfeedsortmodel.cpp
+rssmodel.cpp
+rsssortmodel.cpp
 rsswidget.cpp
 
 # forms

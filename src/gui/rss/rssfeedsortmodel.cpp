@@ -26,20 +26,23 @@
  * exception statement from your version.
  */
 
-#pragma once
+#include "rssfeedsortmodel.h"
 
-#include <stdexcept>
-#include <QString>
+#include "base/rss/rss_article.h"
+#include "rssfeedmodel.h"
 
-class RuntimeError : public std::runtime_error
+namespace
 {
-public:
-    explicit RuntimeError(const QString &message = {});
-    QString message() const;
-};
+    RSS::Article *getArticlePtr(const QModelIndex &index)
+    {
+        return index.data(RSSFeedModel::ItemPtrRole).value<RSS::Article *>();
+    }
+}
 
-class BadArgumentError : public RuntimeError
+bool RSSFeedSortModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
-public:
-    using RuntimeError::RuntimeError;
-};
+    if (sortRole() != Qt::DisplayRole)
+        return QSortFilterProxyModel::lessThan(left, right);
+
+    return (getArticlePtr(left)->date() < getArticlePtr(right)->date());
+}

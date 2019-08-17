@@ -38,6 +38,7 @@
 #include <shlobj.h>
 #endif
 
+#include <QDataStream>
 #include <QDateTime>
 #include <QDir>
 #include <QLocale>
@@ -62,9 +63,19 @@
 #include "settingsstorage.h"
 #include "utils/fs.h"
 
-Preferences *Preferences::m_instance = nullptr;
+namespace
+{
+    struct MetaTypeRegistrator
+    {
+        MetaTypeRegistrator()
+        {
+            qRegisterMetaType<QList<qint64>>();
+            qRegisterMetaTypeStreamOperators<QList<qint64>>();
+        }
+    } metaTypeRegistrator;
+}
 
-Preferences::Preferences() = default;
+Preferences *Preferences::m_instance = nullptr;
 
 Preferences *Preferences::instance()
 {
@@ -1003,7 +1014,7 @@ void Preferences::setTorrentFileAssoc(const bool set)
         settings.setValue(".torrent/Default", "");
     }
 
-    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0);
+    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 }
 
 void Preferences::setMagnetLinkAssoc(const bool set)
@@ -1026,7 +1037,7 @@ void Preferences::setMagnetLinkAssoc(const bool set)
         settings.remove("magnet");
     }
 
-    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0);
+    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 }
 #endif // Q_OS_WIN
 
@@ -1313,14 +1324,14 @@ void Preferences::setRssHSplitterSizes(const QByteArray &sizes)
     setValue("RssFeedDownloader/qt5/hsplitterSizes", sizes);
 }
 
-QStringList Preferences::getRssOpenFolders() const
+QStringList Preferences::getRSSWidgetExpandedItems() const
 {
-    return value("GUI/RSSWidget/OpenedFolders").toStringList();
+    return value("GUI/RSSWidget/ExpandedItems").toStringList();
 }
 
-void Preferences::setRssOpenFolders(const QStringList &folders)
+void Preferences::setRSSWidgetExpandedItems(const QStringList &items)
 {
-    setValue("GUI/RSSWidget/OpenedFolders", folders);
+    setValue("GUI/RSSWidget/ExpandedItems", items);
 }
 
 QByteArray Preferences::getRssSideSplitterState() const

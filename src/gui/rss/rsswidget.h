@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2017  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2017-2018  Vladimir Golovnev <glassez@yandex.ru>
  * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
  * Copyright (C) 2006  Arnaud Demaiziere <arnaud@qbittorrent.org>
  *
@@ -28,13 +28,13 @@
  * exception statement from your version.
  */
 
-#ifndef RSSWIDGET_H
-#define RSSWIDGET_H
+#pragma once
 
 #include <QWidget>
 
-class QListWidgetItem;
-class QTreeWidgetItem;
+class RSSFeedModel;
+class QListView;
+class QTreeView;
 
 class ArticleListWidget;
 class FeedListWidget;
@@ -47,10 +47,11 @@ namespace Ui
 class RSSWidget : public QWidget
 {
     Q_OBJECT
+    Q_DISABLE_COPY(RSSWidget)
 
 public:
-    RSSWidget(QWidget *parent);
-    ~RSSWidget();
+    explicit RSSWidget(QWidget *parent);
+    ~RSSWidget() override;
 
 public slots:
     void deleteSelectedItems();
@@ -64,27 +65,27 @@ private slots:
     void refreshAllFeeds();
     void on_markReadButton_clicked();
     void displayRSSListMenu(const QPoint &);
-    void displayItemsListMenu(const QPoint &);
+    void displayArticleListMenu(const QPoint &);
     void renameSelectedRSSItem();
     void refreshSelectedItems();
     void copySelectedFeedsURL();
-    void handleCurrentFeedItemChanged(QTreeWidgetItem *currentItem);
-    void handleCurrentArticleItemChanged(QListWidgetItem *currentItem, QListWidgetItem *previousItem);
+    void handleCurrentItemChanged(const QModelIndex &currentIndex);
+    void handleCurrentArticleChanged(const QModelIndex &currentIndex, const QModelIndex &previousIndex);
     void openSelectedArticlesUrls();
     void downloadSelectedTorrents();
     void saveSlidersPosition();
     void restoreSlidersPosition();
     void askNewFolder();
-    void saveFoldersOpenState();
-    void loadFoldersOpenState();
     void on_rssDownloaderBtn_clicked();
     void handleSessionProcessingStateChanged(bool enabled);
     void handleUnreadCountChanged();
 
 private:
-    Ui::RSSWidget *m_ui;
-    ArticleListWidget *m_articleListWidget;
-    FeedListWidget *m_feedListWidget;
-};
+    QStringList getExpandedItems(const QModelIndex &index) const;
+    void expandItems(const QStringList &expandedItems, const QModelIndex &parent);
 
-#endif // RSSWIDGET_H
+    Ui::RSSWidget *m_ui;
+    QListView *m_articleListView;
+    QTreeView *m_rssTreeView;
+    RSSFeedModel *m_rssFeedModel;
+};

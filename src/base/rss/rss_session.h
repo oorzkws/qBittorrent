@@ -111,6 +111,12 @@ namespace RSS
         bool moveItem(Item *item, const QString &destPath, QString *error = nullptr);
         bool removeItem(const QString &itemPath, QString *error = nullptr);
 
+        void addFolder(const QString &name, Folder *destFolderPtr);
+        void addFeed(const QString &url, const QString &name, Folder *destFolderPtr);
+        void renameItem(Item *itemPtr, const QString &newName);
+        void moveItem(Item *itemPtr, Folder *destFolderPtr);
+        void removeItem(Item *itemPtr);
+
         QList<Item *> items() const;
         Item *itemByPath(const QString &path) const;
         QList<Feed *> feeds() const;

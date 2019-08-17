@@ -49,7 +49,7 @@
 #include "rss_folder.h"
 #include "rss_item.h"
 
-const int MsecsPerMin = 60000;
+const int MSECS_PER_MIN = 60000;
 const QString ConfFolderName(QStringLiteral("rss"));
 const QString DataFolderName(QStringLiteral("rss/articles"));
 const QString FeedsFileName(QStringLiteral("feeds.json"));
@@ -98,7 +98,7 @@ Session::Session()
 
     connect(&m_refreshTimer, &QTimer::timeout, this, &Session::refresh);
     if (m_processingEnabled) {
-        m_refreshTimer.start(m_refreshInterval * MsecsPerMin);
+        m_refreshTimer.start(m_refreshInterval * MSECS_PER_MIN);
         refresh();
     }
 
@@ -148,27 +148,118 @@ bool Session::addFolder(const QString &path, QString *error)
     if (!destFolder)
         return false;
 
-    addItem(new Folder(path), destFolder);
-    store();
+    try {
+        addFolder(Item::relativeName(path), destFolder);
+    }
+    catch (const RuntimeError &err) {
+        if (error)
+            *error = err.message();
+        return false;
+    }
+
     return true;
+}
+
+void Session::addFolder(const QString &name, Folder *destFolderPtr)
+{
+    if (!destFolderPtr)
+        throw BadArgumentError {};
+
+    if (!Item::isValidName(name) || name.isEmpty()) {
+        throw RuntimeError {tr("%1: invalid item name.")
+                    .arg(name.isEmpty() ? QString {"<empty>"} : name)};
+    }
+
+    const QString path = Item::joinPath(destFolderPtr->path(), name);
+    if (m_itemsByPath.contains(path))
+        throw RuntimeError {tr("RSS item with given path already exists: %1.").arg(path)};
+
+    addItem(new Folder {path}, destFolderPtr);
+    store();
+}
+
+void Session::addFeed(const QString &url, const QString &name, Folder *destFolderPtr)
+{
+    if (!destFolderPtr)
+        throw BadArgumentError {};
+
+    if (!Item::isValidName(name) || name.isEmpty()) {
+        throw RuntimeError {tr("%1: invalid item name.")
+                    .arg(name.isEmpty() ? QString {"<empty>"} : name)};
+    }
+
+    if (m_feedsByURL.contains(url))
+        throw RuntimeError {tr("RSS feed with given URL already exists: %1.").arg(url)};
+
+    const QString path = Item::joinPath(destFolderPtr->path(), name);
+    if (m_itemsByPath.contains(path))
+        throw RuntimeError {tr("RSS item with given path already exists: %1.").arg(path)};
+
+    addItem(new Feed {generateUID(), url, path, this}, destFolderPtr);
+    store();
+    if (m_processingEnabled)
+        feedByURL(url)->refresh();
+}
+
+void Session::renameItem(Item *itemPtr, const QString &newName)
+{
+    if (!itemPtr)
+        throw BadArgumentError {};
+
+    if (itemPtr == rootFolder())
+        throw RuntimeError {tr("Cannot rename root folder.")};
+
+    if (!Item::isValidName(newName) || newName.isEmpty()) {
+        throw RuntimeError {tr("%1: invalid item name.")
+                    .arg(newName.isEmpty() ? QString {"<empty>"} : newName)};
+    }
+
+    const QString destPath = Item::joinPath(Item::parentPath(itemPtr->path()), newName);
+    if (m_itemsByPath.contains(destPath))
+        throw RuntimeError {tr("RSS item with given path already exists: %1.").arg(destPath)};
+
+    m_itemsByPath.insert(destPath, m_itemsByPath.take(itemPtr->path()));
+    itemPtr->setPath(destPath);
+    store();
+}
+
+void Session::moveItem(Item *itemPtr, Folder *destFolderPtr)
+{
+    if (!itemPtr || !destFolderPtr)
+        throw BadArgumentError {};
+
+    if (itemPtr == rootFolder())
+        throw RuntimeError {tr("Cannot move root folder.")};
+
+    const QString path = Item::joinPath(destFolderPtr->path(), Item::relativeName(itemPtr->path()));
+    if (m_itemsByPath.contains(path))
+        throw RuntimeError {tr("RSS item with given path already exists: %1.").arg(path)};
+
+    auto srcFolderPtr = static_cast<Folder *>(m_itemsByPath.value(Item::parentPath(itemPtr->path())));
+    if (srcFolderPtr != destFolderPtr) {
+        srcFolderPtr->removeItem(itemPtr);
+        destFolderPtr->addItem(itemPtr);
+    }
+    m_itemsByPath.insert(path, m_itemsByPath.take(itemPtr->path()));
+    itemPtr->setPath(path);
+    store();
 }
 
 bool Session::addFeed(const QString &url, const QString &path, QString *error)
 {
-    if (m_feedsByURL.contains(url)) {
-        if (error)
-            *error = tr("RSS feed with given URL already exists: %1.").arg(url);
-        return false;
-    }
-
     Folder *destFolder = prepareItemDest(path, error);
     if (!destFolder)
         return false;
 
-    addItem(new Feed(generateUID(), url, path, this), destFolder);
-    store();
-    if (m_processingEnabled)
-        feedByURL(url)->refresh();
+    try {
+        addFeed(url, Item::relativeName(path), destFolder);
+    }
+    catch (const RuntimeError &err) {
+        if (error)
+            *error = err.message();
+        return false;
+    }
+
     return true;
 }
 
@@ -212,27 +303,40 @@ bool Session::moveItem(Item *item, const QString &destPath, QString *error)
 
 bool Session::removeItem(const QString &itemPath, QString *error)
 {
-    if (itemPath.isEmpty()) {
-        if (error)
-            *error = tr("Cannot delete root folder.");
-        return false;
-    }
-
-    auto item = m_itemsByPath.value(itemPath);
+    auto *item = m_itemsByPath.value(itemPath);
     if (!item) {
         if (error)
             *error = tr("Item doesn't exist: %1.").arg(itemPath);
         return false;
     }
 
-    emit itemAboutToBeRemoved(item);
-    item->cleanup();
+    try {
+        removeItem(item);
+    }
+    catch (const RuntimeError &err) {
+        if (error)
+            *error = err.message();
+        return false;
+    }
 
-    auto folder = static_cast<Folder *>(m_itemsByPath.value(Item::parentPath(item->path())));
-    folder->removeItem(item);
-    delete item;
-    store();
     return true;
+}
+
+void Session::removeItem(Item *itemPtr)
+{
+    if (!itemPtr)
+        throw BadArgumentError {};
+
+    if (itemPtr == rootFolder())
+        throw RuntimeError {tr("Cannot delete root folder.")};
+
+    emit itemAboutToBeRemoved(itemPtr);
+    itemPtr->cleanup();
+
+    auto folder = static_cast<Folder *>(m_itemsByPath.value(Item::parentPath(itemPtr->path())));
+    folder->removeItem(itemPtr);
+    delete itemPtr;
+    store();
 }
 
 QList<Item *> Session::items() const
@@ -347,7 +451,7 @@ void Session::loadLegacy()
         return;
     }
 
-    uint i = 0;
+    int i = 0;
     for (QString legacyPath : legacyFeedPaths) {
         if (Item::PathSeparator == QString(legacyPath[0]))
             legacyPath.remove(0, 1);
@@ -439,7 +543,7 @@ void Session::setProcessingEnabled(bool enabled)
         m_processingEnabled = enabled;
         SettingsStorage::instance()->storeValue(SettingsKey_ProcessingEnabled, m_processingEnabled);
         if (m_processingEnabled) {
-            m_refreshTimer.start(m_refreshInterval * MsecsPerMin);
+            m_refreshTimer.start(m_refreshInterval * MSECS_PER_MIN);
             refresh();
         }
         else {
@@ -485,7 +589,7 @@ void Session::setRefreshInterval(const uint refreshInterval)
     if (m_refreshInterval != refreshInterval) {
         SettingsStorage::instance()->storeValue(SettingsKey_RefreshInterval, refreshInterval);
         m_refreshInterval = refreshInterval;
-        m_refreshTimer.start(m_refreshInterval * MsecsPerMin);
+        m_refreshTimer.start(m_refreshInterval * MSECS_PER_MIN);
     }
 }
 

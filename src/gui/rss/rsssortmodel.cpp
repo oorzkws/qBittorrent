@@ -26,20 +26,52 @@
  * exception statement from your version.
  */
 
-#pragma once
+#include "rsssortmodel.h"
 
-#include <stdexcept>
-#include <QString>
+#include "base/rss/rss_folder.h"
+#include "base/utils/string.h"
+#include "rssmodel.h"
 
-class RuntimeError : public std::runtime_error
+namespace
 {
-public:
-    explicit RuntimeError(const QString &message = {});
-    QString message() const;
-};
+    RSS::Item *getItemPtr(const QModelIndex &index)
+    {
+        return index.data(RSSModel::ItemPtrRole).value<RSS::Item *>();
+    }
 
-class BadArgumentError : public RuntimeError
+    bool isStickyItem(const QModelIndex &index)
+    {
+        return (!index.parent().isValid() && (index.row() == 0));
+    }
+
+    bool isFolder(const QModelIndex &index)
+    {
+        return qobject_cast<RSS::Folder *>(getItemPtr(index));
+    }
+}
+
+bool RSSSortModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
-public:
-    using RuntimeError::RuntimeError;
-};
+    // Keep sticky "Unread" item on top
+    if (isStickyItem(left))
+        return (sortOrder() == Qt::AscendingOrder);
+    if (isStickyItem(right))
+        return (sortOrder() != Qt::AscendingOrder);
+
+    if (sortRole() != Qt::DisplayRole)
+        return QSortFilterProxyModel::lessThan(left, right);
+
+    // Keep folders on top
+    const bool leftIsFolder = isFolder(left);
+    const bool rightIsFolder = isFolder(right);
+    if (!leftIsFolder || !rightIsFolder) {
+        if (leftIsFolder)
+            return (sortOrder() == Qt::AscendingOrder);
+        if (rightIsFolder)
+            return (sortOrder() != Qt::AscendingOrder);
+    }
+
+    const int result = Utils::String::naturalCompare(left.data().toString(), right.data().toString()
+                                                     , sortCaseSensitivity());
+    return (result < 0);
+}

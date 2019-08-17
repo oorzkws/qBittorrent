@@ -80,7 +80,7 @@ class Preferences : public QObject
     Q_OBJECT
     Q_DISABLE_COPY(Preferences)
 
-    Preferences();
+    Preferences() = default;
 
     const QVariant value(const QString &key, const QVariant &defaultValue = {}) const;
     void setValue(const QString &key, const QVariant &value);
@@ -345,8 +345,8 @@ public:
     void setRssGeometrySize(const QSize &geometry);
     QByteArray getRssHSplitterSizes() const;
     void setRssHSplitterSizes(const QByteArray &sizes);
-    QStringList getRssOpenFolders() const;
-    void setRssOpenFolders(const QStringList &folders);
+    QStringList getRSSWidgetExpandedItems() const;
+    void setRSSWidgetExpandedItems(const QStringList &items);
     QByteArray getRssSideSplitterState() const;
     void setRssSideSplitterState(const QByteArray &state);
     QByteArray getRssMainSplitterState() const;
