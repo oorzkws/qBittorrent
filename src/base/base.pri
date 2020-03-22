@@ -1,7 +1,9 @@
 HEADERS += \
     $$PWD/algorithm.h \
     $$PWD/asyncfilestorage.h \
-    $$PWD/bittorrent/addtorrentparams.h  \
+    $$PWD/basedefs.h \
+    $$PWD/bittorrent/addtorrentparams.h \
+    $$PWD/bittorrent/bittorrentdefs.h \
     $$PWD/bittorrent/cachestatus.h \
     $$PWD/bittorrent/downloadpriority.h \
     $$PWD/bittorrent/infohash.h \
@@ -68,7 +70,6 @@ HEADERS += \
     $$PWD/torrentfileguard.h \
     $$PWD/torrentfilter.h \
     $$PWD/tristatebool.h \
-    $$PWD/types.h \
     $$PWD/unicodestrings.h \
     $$PWD/utils/bytearray.h \
     $$PWD/utils/foreignapps.h \

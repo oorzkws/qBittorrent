@@ -643,31 +643,29 @@ void OptionsDialog::saveOptions()
     pref->setRSSSmartEpisodeFilters(m_ui->textSmartEpisodeFilters->toPlainText().split('\n', QString::SplitBehavior::SkipEmptyParts));
     pref->setRSSDownloadRepacks(m_ui->checkSmartFilterDownloadRepacks->isChecked());
 
-    auto session = BitTorrent::Session::instance();
-
     // Downloads preferences
-    session->setDefaultSavePath(Utils::Fs::expandPathAbs(m_ui->textSavePath->selectedPath()));
-    session->setSubcategoriesEnabled(m_ui->checkUseSubcategories->isChecked());
-    session->setAutoTMMDisabledByDefault(m_ui->comboSavingMode->currentIndex() == 0);
-    session->setDisableAutoTMMWhenCategoryChanged(m_ui->comboTorrentCategoryChanged->currentIndex() == 1);
-    session->setDisableAutoTMMWhenCategorySavePathChanged(m_ui->comboCategoryChanged->currentIndex() == 1);
-    session->setDisableAutoTMMWhenDefaultSavePathChanged(m_ui->comboCategoryDefaultPathChanged->currentIndex() == 1);
-    session->setTempPathEnabled(m_ui->checkTempFolder->isChecked());
-    session->setTempPath(Utils::Fs::expandPathAbs(m_ui->textTempPath->selectedPath()));
-    session->setAppendExtensionEnabled(m_ui->checkAppendqB->isChecked());
-    session->setPreallocationEnabled(preAllocateAllFiles());
+    pref->defaultSavePath.set(Utils::Fs::expandPathAbs(m_ui->textSavePath->selectedPath()));
+    pref->isSubcategoriesEnabled.set(m_ui->checkUseSubcategories->isChecked());
+    pref->isAutoTMMDisabledByDefault.set(m_ui->comboSavingMode->currentIndex() == 0);
+    pref->isDisableAutoTMMWhenCategoryChanged.set(m_ui->comboTorrentCategoryChanged->currentIndex() == 1);
+    pref->isDisableAutoTMMWhenCategorySavePathChanged.set(m_ui->comboCategoryChanged->currentIndex() == 1);
+    pref->isDisableAutoTMMWhenDefaultSavePathChanged.set(m_ui->comboCategoryDefaultPathChanged->currentIndex() == 1);
+    pref->isTempPathEnabled.set(m_ui->checkTempFolder->isChecked());
+    pref->tempPath.set(Utils::Fs::expandPathAbs(m_ui->textTempPath->selectedPath()));
+    pref->isAppendExtensionEnabled.set(m_ui->checkAppendqB->isChecked());
+    pref->isPreallocationEnabled.set(preAllocateAllFiles());
     pref->disableRecursiveDownload(!m_ui->checkRecursiveDownload->isChecked());
     pref->setAddTorrentDialogEnabled(useAdditionDialog());
     pref->setAddTorrentDialogTopLevel(m_ui->checkAdditionDialogFront->isChecked());
-    session->setAddTorrentPaused(addTorrentsInPause());
-    session->setCreateTorrentSubfolder(m_ui->checkCreateSubfolder->isChecked());
+    pref->isAddTorrentPaused.set(addTorrentsInPause());
+    pref->isCreateTorrentSubfolderEnabled.set(m_ui->checkCreateSubfolder->isChecked());
     ScanFoldersModel::instance()->removeFromFSWatcher(m_removedScanDirs);
     ScanFoldersModel::instance()->addToFSWatcher(m_addedScanDirs);
     ScanFoldersModel::instance()->makePersistent();
     m_removedScanDirs.clear();
     m_addedScanDirs.clear();
-    session->setTorrentExportDirectory(getTorrentExportDir());
-    session->setFinishedTorrentExportDirectory(getFinishedTorrentExportDir());
+    pref->torrentExportDirectory.set(getTorrentExportDir());
+    pref->finishedTorrentExportDirectory.set(getFinishedTorrentExportDir());
     pref->setMailNotificationEnabled(m_ui->groupMailNotification->isChecked());
     pref->setMailNotificationSender(m_ui->senderEmailTxt->text());
     pref->setMailNotificationEmail(m_ui->lineEditDestEmail->text());
@@ -689,21 +687,21 @@ void OptionsDialog::saveOptions()
     // End Downloads preferences
 
     // Connection preferences
-    session->setBTProtocol(static_cast<BitTorrent::BTProtocol>(m_ui->comboProtocol->currentIndex()));
-    session->setPort(getPort());
-    session->setUseRandomPort(m_ui->checkRandomPort->isChecked());
+    pref->btProtocol.set(static_cast<BitTorrent::BTProtocol>(m_ui->comboProtocol->currentIndex()));
+    pref->port.set(getPort());
+    pref->useRandomPort.set(m_ui->checkRandomPort->isChecked());
     pref->setPortForwardingEnabled(isUPnPEnabled());
-    session->setGlobalDownloadSpeedLimit(m_ui->spinDownloadLimit->value() * 1024);
-    session->setGlobalUploadSpeedLimit(m_ui->spinUploadLimit->value() * 1024);
-    session->setAltGlobalDownloadSpeedLimit(m_ui->spinDownloadLimitAlt->value() * 1024);
-    session->setAltGlobalUploadSpeedLimit(m_ui->spinUploadLimitAlt->value() * 1024);
-    session->setUTPRateLimited(m_ui->checkLimituTPConnections->isChecked());
-    session->setIncludeOverheadInLimits(m_ui->checkLimitTransportOverhead->isChecked());
-    session->setIgnoreLimitsOnLAN(!m_ui->checkLimitLocalPeerRate->isChecked());
+    pref->globalDownloadSpeedLimit.set(m_ui->spinDownloadLimit->value() * 1024);
+    pref->globalUploadSpeedLimit.set(m_ui->spinUploadLimit->value() * 1024);
+    pref->altGlobalDownloadSpeedLimit.set(m_ui->spinDownloadLimitAlt->value() * 1024);
+    pref->altGlobalUploadSpeedLimit.set(m_ui->spinUploadLimitAlt->value() * 1024);
+    pref->isUTPRateLimited.set(m_ui->checkLimituTPConnections->isChecked());
+    pref->includeOverheadInLimits.set(m_ui->checkLimitTransportOverhead->isChecked());
+    pref->ignoreLimitsOnLAN.set(!m_ui->checkLimitLocalPeerRate->isChecked());
     pref->setSchedulerStartTime(m_ui->timeEditScheduleFrom->time());
     pref->setSchedulerEndTime(m_ui->timeEditScheduleTo->time());
     pref->setSchedulerDays(static_cast<SchedulerDays>(m_ui->comboBoxScheduleDays->currentIndex()));
-    session->setBandwidthSchedulerEnabled(m_ui->groupBoxSchedule->isChecked());
+    pref->isBandwidthSchedulerEnabled.set(m_ui->groupBoxSchedule->isChecked());
 
     pref->setProxyType(getProxyType());
     pref->setProxyIP(getProxyIp());
@@ -711,23 +709,23 @@ void OptionsDialog::saveOptions()
     pref->setProxyUsername(getProxyUsername());
     pref->setProxyPassword(getProxyPassword());
     pref->setProxyOnlyForTorrents(m_ui->isProxyOnlyForTorrents->isChecked());
-    session->setProxyPeerConnectionsEnabled(m_ui->checkProxyPeerConnecs->isChecked());
+    pref->isProxyPeerConnectionsEnabled.set(m_ui->checkProxyPeerConnecs->isChecked());
     // End Connection preferences
 
     // Bittorrent preferences
-    session->setMaxConnections(getMaxConnecs());
-    session->setMaxConnectionsPerTorrent(getMaxConnecsPerTorrent());
-    session->setMaxUploads(getMaxUploads());
-    session->setMaxUploadsPerTorrent(getMaxUploadsPerTorrent());
-    session->setDHTEnabled(isDHTEnabled());
-    session->setPeXEnabled(m_ui->checkPeX->isChecked());
-    session->setLSDEnabled(isLSDEnabled());
-    session->setEncryption(getEncryptionSetting());
-    session->setAnonymousModeEnabled(m_ui->checkAnonymousMode->isChecked());
-    session->setAddTrackersEnabled(m_ui->checkEnableAddTrackers->isChecked());
-    session->setAdditionalTrackers(m_ui->textTrackers->toPlainText());
-    session->setGlobalMaxRatio(getMaxRatio());
-    session->setGlobalMaxSeedingMinutes(getMaxSeedingMinutes());
+    pref->maxConnections.set(getMaxConnecs());
+    pref->maxConnectionsPerTorrent.set(getMaxConnecsPerTorrent());
+    pref->maxUploads.set(getMaxUploads());
+    pref->maxUploadsPerTorrent.set(getMaxUploadsPerTorrent());
+    pref->isDHTEnabled.set(isDHTEnabled());
+    pref->isPeXEnabled.set(m_ui->checkPeX->isChecked());
+    pref->isLSDEnabled.set(isLSDEnabled());
+    pref->encryptionMode.set(getEncryptionSetting());
+    pref->isAnonymousModeEnabled.set(m_ui->checkAnonymousMode->isChecked());
+    pref->isAddTrackersEnabled.set(m_ui->checkEnableAddTrackers->isChecked());
+    pref->additionalTrackers.set(m_ui->textTrackers->toPlainText());
+    pref->globalMaxRatio.set(getMaxRatio());
+    pref->globalMaxSeedingMinutes.set(getMaxSeedingMinutes());
 
     const QVector<MaxRatioAction> actIndex = {
         Pause,
@@ -735,24 +733,24 @@ void OptionsDialog::saveOptions()
         DeleteFiles,
         EnableSuperSeeding
     };
-    session->setMaxRatioAction(actIndex.value(m_ui->comboRatioLimitAct->currentIndex()));
+    pref->maxRatioAction.set(actIndex.value(m_ui->comboRatioLimitAct->currentIndex()));
     // End Bittorrent preferences
 
     // Misc preferences
     // * IPFilter
-    session->setIPFilteringEnabled(isIPFilteringEnabled());
-    session->setTrackerFilteringEnabled(m_ui->checkIpFilterTrackers->isChecked());
-    session->setIPFilterFile(m_ui->textFilterPath->selectedPath());
+    pref->isIPFilteringEnabled.set(isIPFilteringEnabled());
+    pref->isTrackerFilteringEnabled.set(m_ui->checkIpFilterTrackers->isChecked());
+    pref->ipFilterFile.set(m_ui->textFilterPath->selectedPath());
     // End IPFilter preferences
     // Queueing system
-    session->setQueueingSystemEnabled(isQueueingSystemEnabled());
-    session->setMaxActiveDownloads(m_ui->spinMaxActiveDownloads->value());
-    session->setMaxActiveUploads(m_ui->spinMaxActiveUploads->value());
-    session->setMaxActiveTorrents(m_ui->spinMaxActiveTorrents->value());
-    session->setIgnoreSlowTorrentsForQueueing(m_ui->checkIgnoreSlowTorrentsForQueueing->isChecked());
-    session->setDownloadRateForSlowTorrents(m_ui->spinDownloadRateForSlowTorrents->value());
-    session->setUploadRateForSlowTorrents(m_ui->spinUploadRateForSlowTorrents->value());
-    session->setSlowTorrentsInactivityTimer(m_ui->spinSlowTorrentsInactivityTimer->value());
+    pref->isQueueingSystemEnabled.set(isQueueingSystemEnabled());
+    pref->maxActiveDownloads.set(m_ui->spinMaxActiveDownloads->value());
+    pref->maxActiveUploads.set(m_ui->spinMaxActiveUploads->value());
+    pref->maxActiveTorrents.set(m_ui->spinMaxActiveTorrents->value());
+    pref->ignoreSlowTorrentsForQueueing.set(m_ui->checkIgnoreSlowTorrentsForQueueing->isChecked());
+    pref->downloadRateForSlowTorrents.set(m_ui->spinDownloadRateForSlowTorrents->value());
+    pref->uploadRateForSlowTorrents.set(m_ui->spinUploadRateForSlowTorrents->value());
+    pref->slowTorrentsInactivityTimer.set(m_ui->spinSlowTorrentsInactivityTimer->value());
     // End Queueing system preferences
     // Web UI
     pref->setWebUiEnabled(isWebUiEnabled());
@@ -891,32 +889,30 @@ void OptionsDialog::loadOptions()
     m_ui->spinRSSRefreshInterval->setValue(pref->getRSSRefreshInterval());
     m_ui->spinRSSMaxArticlesPerFeed->setValue(pref->getRSSMaxArticlesPerFeed());
 
-    const auto *session = BitTorrent::Session::instance();
-
     // Downloads preferences
     m_ui->checkAdditionDialog->setChecked(pref->isAddTorrentDialogEnabled());
     m_ui->checkAdditionDialogFront->setChecked(pref->isAddTorrentDialogTopLevel());
-    m_ui->checkStartPaused->setChecked(session->isAddTorrentPaused());
-    m_ui->checkCreateSubfolder->setChecked(session->isCreateTorrentSubfolder());
+    m_ui->checkStartPaused->setChecked(pref->isAddTorrentPaused());
+    m_ui->checkCreateSubfolder->setChecked(pref->isCreateTorrentSubfolderEnabled());
     const TorrentFileGuard::AutoDeleteMode autoDeleteMode = TorrentFileGuard::autoDeleteMode();
     m_ui->deleteTorrentBox->setChecked(autoDeleteMode != TorrentFileGuard::Never);
     m_ui->deleteCancelledTorrentBox->setChecked(autoDeleteMode == TorrentFileGuard::Always);
 
-    m_ui->textSavePath->setSelectedPath(session->defaultSavePath());
-    m_ui->checkUseSubcategories->setChecked(session->isSubcategoriesEnabled());
-    m_ui->comboSavingMode->setCurrentIndex(!session->isAutoTMMDisabledByDefault());
-    m_ui->comboTorrentCategoryChanged->setCurrentIndex(session->isDisableAutoTMMWhenCategoryChanged());
-    m_ui->comboCategoryChanged->setCurrentIndex(session->isDisableAutoTMMWhenCategorySavePathChanged());
-    m_ui->comboCategoryDefaultPathChanged->setCurrentIndex(session->isDisableAutoTMMWhenDefaultSavePathChanged());
-    m_ui->checkTempFolder->setChecked(session->isTempPathEnabled());
+    m_ui->textSavePath->setSelectedPath(pref->defaultSavePath());
+    m_ui->checkUseSubcategories->setChecked(pref->isSubcategoriesEnabled());
+    m_ui->comboSavingMode->setCurrentIndex(!pref->isAutoTMMDisabledByDefault());
+    m_ui->comboTorrentCategoryChanged->setCurrentIndex(pref->isDisableAutoTMMWhenCategoryChanged());
+    m_ui->comboCategoryChanged->setCurrentIndex(pref->isDisableAutoTMMWhenCategorySavePathChanged());
+    m_ui->comboCategoryDefaultPathChanged->setCurrentIndex(pref->isDisableAutoTMMWhenDefaultSavePathChanged());
+    m_ui->checkTempFolder->setChecked(pref->isTempPathEnabled());
     m_ui->textTempPath->setEnabled(m_ui->checkTempFolder->isChecked());
     m_ui->textTempPath->setEnabled(m_ui->checkTempFolder->isChecked());
-    m_ui->textTempPath->setSelectedPath(Utils::Fs::toNativePath(session->tempPath()));
-    m_ui->checkAppendqB->setChecked(session->isAppendExtensionEnabled());
-    m_ui->checkPreallocateAll->setChecked(session->isPreallocationEnabled());
+    m_ui->textTempPath->setSelectedPath(Utils::Fs::toNativePath(pref->tempPath()));
+    m_ui->checkAppendqB->setChecked(pref->isAppendExtensionEnabled());
+    m_ui->checkPreallocateAll->setChecked(pref->isPreallocationEnabled());
     m_ui->checkRecursiveDownload->setChecked(!pref->recursiveDownloadDisabled());
 
-    strValue = session->torrentExportDirectory();
+    strValue = pref->torrentExportDirectory();
     if (strValue.isEmpty()) {
         // Disable
         m_ui->checkExportDir->setChecked(false);
@@ -929,7 +925,7 @@ void OptionsDialog::loadOptions()
         m_ui->textExportDir->setSelectedPath(strValue);
     }
 
-    strValue = session->finishedTorrentExportDirectory();
+    strValue = pref->finishedTorrentExportDirectory();
     if (strValue.isEmpty()) {
         // Disable
         m_ui->checkExportDirFin->setChecked(false);
@@ -969,13 +965,13 @@ void OptionsDialog::loadOptions()
     // End Downloads preferences
 
     // Connection preferences
-    m_ui->comboProtocol->setCurrentIndex(static_cast<int>(session->btProtocol()));
+    m_ui->comboProtocol->setCurrentIndex(static_cast<int>(pref->btProtocol()));
     m_ui->checkUPnP->setChecked(pref->isPortForwardingEnabled());
-    m_ui->checkRandomPort->setChecked(session->useRandomPort());
-    m_ui->spinPort->setValue(session->port());
+    m_ui->checkRandomPort->setChecked(pref->useRandomPort());
+    m_ui->spinPort->setValue(pref->port());
     m_ui->spinPort->setDisabled(m_ui->checkRandomPort->isChecked());
 
-    intValue = session->maxConnections();
+    intValue = pref->maxConnections();
     if (intValue > 0) {
         // enable
         m_ui->checkMaxConnecs->setChecked(true);
@@ -987,7 +983,7 @@ void OptionsDialog::loadOptions()
         m_ui->checkMaxConnecs->setChecked(false);
         m_ui->spinMaxConnec->setEnabled(false);
     }
-    intValue = session->maxConnectionsPerTorrent();
+    intValue = pref->maxConnectionsPerTorrent();
     if (intValue > 0) {
         // enable
         m_ui->checkMaxConnecsPerTorrent->setChecked(true);
@@ -999,7 +995,7 @@ void OptionsDialog::loadOptions()
         m_ui->checkMaxConnecsPerTorrent->setChecked(false);
         m_ui->spinMaxConnecPerTorrent->setEnabled(false);
     }
-    intValue = session->maxUploads();
+    intValue = pref->maxUploads();
     if (intValue > 0) {
         // enable
         m_ui->checkMaxUploads->setChecked(true);
@@ -1011,7 +1007,7 @@ void OptionsDialog::loadOptions()
         m_ui->checkMaxUploads->setChecked(false);
         m_ui->spinMaxUploads->setEnabled(false);
     }
-    intValue = session->maxUploadsPerTorrent();
+    intValue = pref->maxUploadsPerTorrent();
     if (intValue > 0) {
         // enable
         m_ui->checkMaxUploadsPerTorrent->setChecked(true);
@@ -1052,83 +1048,83 @@ void OptionsDialog::loadOptions()
     m_ui->textProxyUsername->setText(pref->proxyUsername());
     m_ui->textProxyPassword->setText(pref->proxyPassword());
 
-    m_ui->checkProxyPeerConnecs->setChecked(session->isProxyPeerConnectionsEnabled());
+    m_ui->checkProxyPeerConnecs->setChecked(pref->isProxyPeerConnectionsEnabled());
     m_ui->isProxyOnlyForTorrents->setChecked(pref->isProxyOnlyForTorrents());
     enableProxy(m_ui->comboProxyType->currentIndex());
 
-    m_ui->checkIPFilter->setChecked(session->isIPFilteringEnabled());
+    m_ui->checkIPFilter->setChecked(pref->isIPFilteringEnabled());
     m_ui->textFilterPath->setEnabled(m_ui->checkIPFilter->isChecked());
-    m_ui->textFilterPath->setSelectedPath(session->IPFilterFile());
+    m_ui->textFilterPath->setSelectedPath(pref->ipFilterFile());
     m_ui->IpFilterRefreshBtn->setEnabled(m_ui->checkIPFilter->isChecked());
-    m_ui->checkIpFilterTrackers->setChecked(session->isTrackerFilteringEnabled());
+    m_ui->checkIpFilterTrackers->setChecked(pref->isTrackerFilteringEnabled());
     // End Connection preferences
 
     // Speed preferences
-    m_ui->spinDownloadLimit->setValue(session->globalDownloadSpeedLimit() / 1024);
-    m_ui->spinUploadLimit->setValue(session->globalUploadSpeedLimit() / 1024);
-    m_ui->spinDownloadLimitAlt->setValue(session->altGlobalDownloadSpeedLimit() / 1024);
-    m_ui->spinUploadLimitAlt->setValue(session->altGlobalUploadSpeedLimit() / 1024);
+    m_ui->spinDownloadLimit->setValue(pref->globalDownloadSpeedLimit() / 1024);
+    m_ui->spinUploadLimit->setValue(pref->globalUploadSpeedLimit() / 1024);
+    m_ui->spinDownloadLimitAlt->setValue(pref->altGlobalDownloadSpeedLimit() / 1024);
+    m_ui->spinUploadLimitAlt->setValue(pref->altGlobalUploadSpeedLimit() / 1024);
 
-    m_ui->checkLimituTPConnections->setChecked(session->isUTPRateLimited());
-    m_ui->checkLimitTransportOverhead->setChecked(session->includeOverheadInLimits());
-    m_ui->checkLimitLocalPeerRate->setChecked(!session->ignoreLimitsOnLAN());
+    m_ui->checkLimituTPConnections->setChecked(pref->isUTPRateLimited());
+    m_ui->checkLimitTransportOverhead->setChecked(pref->includeOverheadInLimits());
+    m_ui->checkLimitLocalPeerRate->setChecked(!pref->ignoreLimitsOnLAN());
 
-    m_ui->groupBoxSchedule->setChecked(session->isBandwidthSchedulerEnabled());
+    m_ui->groupBoxSchedule->setChecked(pref->isBandwidthSchedulerEnabled());
     m_ui->timeEditScheduleFrom->setTime(pref->getSchedulerStartTime());
     m_ui->timeEditScheduleTo->setTime(pref->getSchedulerEndTime());
     m_ui->comboBoxScheduleDays->setCurrentIndex(static_cast<int>(pref->getSchedulerDays()));
     // End Speed preferences
 
     // Bittorrent preferences
-    m_ui->checkDHT->setChecked(session->isDHTEnabled());
-    m_ui->checkPeX->setChecked(session->isPeXEnabled());
-    m_ui->checkLSD->setChecked(session->isLSDEnabled());
-    m_ui->comboEncryption->setCurrentIndex(session->encryption());
-    m_ui->checkAnonymousMode->setChecked(session->isAnonymousModeEnabled());
-    m_ui->checkEnableAddTrackers->setChecked(session->isAddTrackersEnabled());
-    m_ui->textTrackers->setPlainText(session->additionalTrackers());
+    m_ui->checkDHT->setChecked(pref->isDHTEnabled());
+    m_ui->checkPeX->setChecked(pref->isPeXEnabled());
+    m_ui->checkLSD->setChecked(pref->isLSDEnabled());
+    m_ui->comboEncryption->setCurrentIndex(pref->encryptionMode());
+    m_ui->checkAnonymousMode->setChecked(pref->isAnonymousModeEnabled());
+    m_ui->checkEnableAddTrackers->setChecked(pref->isAddTrackersEnabled());
+    m_ui->textTrackers->setPlainText(pref->additionalTrackers());
 
-    m_ui->checkEnableQueueing->setChecked(session->isQueueingSystemEnabled());
-    m_ui->spinMaxActiveDownloads->setValue(session->maxActiveDownloads());
-    m_ui->spinMaxActiveUploads->setValue(session->maxActiveUploads());
-    m_ui->spinMaxActiveTorrents->setValue(session->maxActiveTorrents());
-    m_ui->checkIgnoreSlowTorrentsForQueueing->setChecked(session->ignoreSlowTorrentsForQueueing());
-    m_ui->spinDownloadRateForSlowTorrents->setValue(session->downloadRateForSlowTorrents());
-    m_ui->spinUploadRateForSlowTorrents->setValue(session->uploadRateForSlowTorrents());
-    m_ui->spinSlowTorrentsInactivityTimer->setValue(session->slowTorrentsInactivityTimer());
+    m_ui->checkEnableQueueing->setChecked(pref->isQueueingSystemEnabled());
+    m_ui->spinMaxActiveDownloads->setValue(pref->maxActiveDownloads());
+    m_ui->spinMaxActiveUploads->setValue(pref->maxActiveUploads());
+    m_ui->spinMaxActiveTorrents->setValue(pref->maxActiveTorrents());
+    m_ui->checkIgnoreSlowTorrentsForQueueing->setChecked(pref->ignoreSlowTorrentsForQueueing());
+    m_ui->spinDownloadRateForSlowTorrents->setValue(pref->downloadRateForSlowTorrents());
+    m_ui->spinUploadRateForSlowTorrents->setValue(pref->uploadRateForSlowTorrents());
+    m_ui->spinSlowTorrentsInactivityTimer->setValue(pref->slowTorrentsInactivityTimer());
 
-    if (session->globalMaxRatio() >= 0.) {
+    if (pref->globalMaxRatio() >= 0.) {
         // Enable
         m_ui->checkMaxRatio->setChecked(true);
         m_ui->spinMaxRatio->setEnabled(true);
         m_ui->comboRatioLimitAct->setEnabled(true);
-        m_ui->spinMaxRatio->setValue(session->globalMaxRatio());
+        m_ui->spinMaxRatio->setValue(pref->globalMaxRatio());
     }
     else {
         // Disable
         m_ui->checkMaxRatio->setChecked(false);
         m_ui->spinMaxRatio->setEnabled(false);
     }
-    if (session->globalMaxSeedingMinutes() >= 0) {
+    if (pref->globalMaxSeedingMinutes() >= 0) {
         // Enable
         m_ui->checkMaxSeedingMinutes->setChecked(true);
         m_ui->spinMaxSeedingMinutes->setEnabled(true);
-        m_ui->spinMaxSeedingMinutes->setValue(session->globalMaxSeedingMinutes());
+        m_ui->spinMaxSeedingMinutes->setValue(pref->globalMaxSeedingMinutes());
     }
     else {
         // Disable
         m_ui->checkMaxSeedingMinutes->setChecked(false);
         m_ui->spinMaxSeedingMinutes->setEnabled(false);
     }
-    m_ui->comboRatioLimitAct->setEnabled((session->globalMaxSeedingMinutes() >= 0) || (session->globalMaxRatio() >= 0.));
+    m_ui->comboRatioLimitAct->setEnabled((pref->globalMaxSeedingMinutes() >= 0) || (pref->globalMaxRatio() >= 0.));
 
-    const QHash<MaxRatioAction, int> actIndex = {
+    const QHash<int, int> actIndex = {
         {Pause, 0},
         {Remove, 1},
         {DeleteFiles, 2},
         {EnableSuperSeeding, 3}
     };
-    m_ui->comboRatioLimitAct->setCurrentIndex(actIndex.value(session->maxRatioAction()));
+    m_ui->comboRatioLimitAct->setCurrentIndex(actIndex.value(pref->maxRatioAction()));
     // End Bittorrent preferences
 
     // Web UI preferences
@@ -1666,11 +1662,11 @@ void OptionsDialog::on_IpFilterRefreshBtn_clicked()
     if (m_refreshingIpFilter) return;
     m_refreshingIpFilter = true;
     // Updating program preferences
-    BitTorrent::Session *const session = BitTorrent::Session::instance();
-    session->setIPFilteringEnabled(true);
-    session->setIPFilterFile(""); // forcing Session reload filter file
-    session->setIPFilterFile(getFilter());
-    connect(session, &BitTorrent::Session::IPFilterParsed, this, &OptionsDialog::handleIPFilterParsed);
+    const Preferences *pref = Preferences::instance();
+    pref->isIPFilteringEnabled.set(true);
+    pref->ipFilterFile.set(getFilter());
+    // FIXME: Fix this logic!
+    connect(BitTorrent::Session::instance(), &BitTorrent::Session::IPFilterParsed, this, &OptionsDialog::handleIPFilterParsed);
     setCursor(QCursor(Qt::WaitCursor));
 }
 

@@ -43,7 +43,7 @@ class PreferencesItemHandlerBase
 {
 public:
     bool isChanged() const;
-    void reset();
+    void accept();
 
 protected:
     bool m_isChanged = false;
@@ -64,7 +64,7 @@ public:
     {
     }
 
-    T get() const
+    T operator()() const
     {
         return m_value;
     }
@@ -126,7 +126,7 @@ class PreferencesBase : public QObject
     Q_DISABLE_COPY(PreferencesBase)
 
 #define ITEM(name, type, key, ...) \
-    PreferencesItemHandler<type> &name = registerItemHandler<type>(QStringLiteral(key), __VA_ARGS__)
+    PreferencesItemHandler<type> &name = registerItemHandler<type>(QStringLiteral(key), ##__VA_ARGS__)
 
 public:
     explicit PreferencesBase(QObject *parent = nullptr);

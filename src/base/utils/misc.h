@@ -38,7 +38,7 @@
 
 #include <QString>
 
-enum class ShutdownDialogAction;
+#include "base/basedefs.h"
 
 /*  Miscellaneous functions that can be useful */
 
@@ -64,7 +64,7 @@ namespace Utils
 
         QString parseHtmlLinks(const QString &rawText);
 
-        void shutdownComputer(const ShutdownDialogAction &action);
+        void shutdownComputer(const ShutdownAction &action);
 
         QString osName();
         QString boostVersionString();

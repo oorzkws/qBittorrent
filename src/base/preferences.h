@@ -31,8 +31,13 @@
 
 #include <QList>
 
+#include "basedefs.h"
+#include "global.h"
+#include "bittorrent/bittorrentdefs.h"
 #include "net/proxytype.h"
 #include "preferencesbase.h"
+#include "profile.h"
+#include "utils/fs.h"
 #include "utils/net.h"
 
 class QDateTime;
@@ -463,9 +468,102 @@ public:
     void setNetworkCookies(const QList<QNetworkCookie> &cookies);
 
     ITEM(isDHTEnabled, bool, "BitTorrent/Session/DHTEnabled", true);
-    ITEM(globalMaxRatio, qreal, "BitTorrent/Session/GlobalMaxRatio", -1, [](qreal r) { return r < 0 ? -1. : r; });
+    ITEM(isLSDEnabled, bool, "BitTorrent/Session/LSDEnabled", true);
+    ITEM(isPeXEnabled, bool, "BitTorrent/Session/PeXEnabled", true);
+    ITEM(isIPFilteringEnabled, bool, "BitTorrent/Session/IPFilteringEnabled", false);
+    ITEM(isTrackerFilteringEnabled, bool, "BitTorrent/Session/TrackerFilteringEnabled", false);
+    ITEM(ipFilterFile, QString, "BitTorrent/Session/IPFilter");
+    ITEM(announceToAllTrackers, bool, "BitTorrent/Session/AnnounceToAllTrackers", false);
+    ITEM(announceToAllTiers, bool, "BitTorrent/Session/AnnounceToAllTiers", true);
+    ITEM(asyncIOThreadsCount, int, "BitTorrent/Session/AsyncIOThreadsCount", 4, clampValue(1, 1024));
+    ITEM(filePoolSize, int, "BitTorrent/Session/FilePoolSize", 40);
+    ITEM(checkingMemUsage, int, "BitTorrent/Session/CheckingMemUsageSize", 32, lowerLimited(1));
+#ifdef QBT_APP_64BIT
+    ITEM(diskCacheSize, int, "BitTorrent/Session/DiskCacheSize", -1, clampValue(-1, 33554431)); // 32768GiB
+#else
+    // When build as 32bit binary, set the maximum at less than 2GB to prevent crashes
+    // allocate 1536MiB and leave 512MiB to the rest of program data in RAM
+    ITEM(diskCacheSize, int, "BitTorrent/Session/DiskCacheSize", -1, clampValue(-1, 1536));
+#endif
+    ITEM(diskCacheTTL, int, "BitTorrent/Session/DiskCacheTTL", 60);
+    ITEM(useOSCache, bool, "BitTorrent/Session/UseOSCache", true);
+#ifdef Q_OS_WIN
+    ITEM(isCoalesceReadWriteEnabled, bool, "BitTorrent/Session/CoalesceReadWrite", true);
+#else
+    ITEM(isCoalesceReadWriteEnabled, bool, "BitTorrent/Session/CoalesceReadWrite", false);
+#endif
+    ITEM(usePieceExtentAffinity, bool, "BitTorrent/Session/PieceExtentAffinity", false);
+    ITEM(isSuggestModeEnabled, bool, "BitTorrent/Session/SuggestMode", false);
+    ITEM(sendBufferWatermark, int, "BitTorrent/Session/SendBufferWatermark", 500);
+    ITEM(sendBufferLowWatermark, int, "BitTorrent/Session/SendBufferLowWatermark", 10);
+    ITEM(sendBufferWatermarkFactor, int, "BitTorrent/Session/SendBufferWatermarkFactor", 50);
+    ITEM(socketBacklogSize, int, "BitTorrent/Session/SocketBacklogSize", 30);
+    ITEM(isAnonymousModeEnabled, bool, "BitTorrent/Session/AnonymousModeEnabled", false);
+    ITEM(isQueueingSystemEnabled, bool, "BitTorrent/Session/QueueingSystemEnabled", false);
     ITEM(maxActiveDownloads, int, "BitTorrent/Session/MaxActiveDownloads", 3, lowerLimited(-1));
+    ITEM(maxActiveUploads, int, "BitTorrent/Session/MaxActiveUploads", 3, lowerLimited(-1));
+    ITEM(maxActiveTorrents, int, "BitTorrent/Session/MaxActiveTorrents", 5, lowerLimited(-1));
+    ITEM(ignoreSlowTorrentsForQueueing, bool, "BitTorrent/Session/IgnoreSlowTorrentsForQueueing", false);
+    ITEM(downloadRateForSlowTorrents, int, "BitTorrent/Session/SlowTorrentsDownloadRate", 2);
+    ITEM(uploadRateForSlowTorrents, int, "BitTorrent/Session/SlowTorrentsUploadRate", 2);
+    ITEM(slowTorrentsInactivityTimer, int, "BitTorrent/Session/SlowTorrentsInactivityTimer", 60);
+    ITEM(minOutgoingPort, int, "BitTorrent/Session/OutgoingPortsMin", 0);
+    ITEM(maxOutgoingPort, int, "BitTorrent/Session/OutgoingPortsMax", 0);
+    ITEM(ignoreLimitsOnLAN, bool, "BitTorrent/Session/IgnoreLimitsOnLAN", false);
+    ITEM(includeOverheadInLimits, bool, "BitTorrent/Session/IncludeOverheadInLimits", false);
+    ITEM(announceIP, QString, "BitTorrent/Session/AnnounceIP");
+    ITEM(stopTrackerTimeout, int, "BitTorrent/Session/StopTrackerTimeout", 1);
+    ITEM(isSuperSeedingEnabled, bool, "BitTorrent/Session/SuperSeedingEnabled", false);
     ITEM(maxConnections, int, "BitTorrent/Session/MaxConnections", 500, lowerLimited(0, -1));
+    ITEM(maxUploads, int, "BitTorrent/Session/MaxUploads", -1, lowerLimited(0, -1));
+    ITEM(maxConnectionsPerTorrent, int, "BitTorrent/Session/MaxConnectionsPerTorrent", 100, lowerLimited(0, -1));
+    ITEM(maxUploadsPerTorrent, int, "BitTorrent/Session/MaxUploadsPerTorrent", -1, lowerLimited(0, -1));
+    ITEM(btProtocol, BitTorrent::BTProtocol, "BitTorrent/Session/BTProtocol", BitTorrent::BTProtocol::Both, clampValue(BitTorrent::BTProtocol::Both, BitTorrent::BTProtocol::UTP));
+    ITEM(isUTPRateLimited, bool, "BitTorrent/Session/uTPRateLimited", true);
+    ITEM(utpMixedMode, BitTorrent::MixedModeAlgorithm, "BitTorrent/Session/uTPMixedMode", BitTorrent::MixedModeAlgorithm::TCP, clampValue(BitTorrent::MixedModeAlgorithm::TCP, BitTorrent::MixedModeAlgorithm::Proportional));
+    ITEM(isMultiConnectionsPerIPEnabled, bool, "BitTorrent/Session/MultiConnectionsPerIp", false);
+    ITEM(isAddTrackersEnabled, bool, "BitTorrent/Session/AddTrackersEnabled", false);
+    ITEM(additionalTrackers, QString, "BitTorrent/Session/AdditionalTrackers");
+    ITEM(globalMaxRatio, qreal, "BitTorrent/Session/GlobalMaxRatio", -1, [](qreal r) { return r < 0 ? -1. : r;});
+    ITEM(globalMaxSeedingMinutes, int, "BitTorrent/Session/GlobalMaxSeedingMinutes", -1, lowerLimited(-1));
+    ITEM(isAddTorrentPaused, bool, "BitTorrent/Session/AddTorrentPaused", false);
+    ITEM(isCreateTorrentSubfolderEnabled, bool, "BitTorrent/Session/CreateTorrentSubfolder", true);
+    ITEM(isAppendExtensionEnabled, bool, "BitTorrent/Session/AddExtensionToIncompleteFiles", false);
+    ITEM(refreshInterval, int, "BitTorrent/Session/RefreshInterval", 1500);
+    ITEM(isPreallocationEnabled, bool, "BitTorrent/Session/Preallocation", false);
+    ITEM(torrentExportDirectory, QString, "BitTorrent/Session/TorrentExportDirectory", Utils::Fs::toUniformPath);
+    ITEM(finishedTorrentExportDirectory, QString, "BitTorrent/Session/FinishedTorrentExportDirectory", Utils::Fs::toUniformPath);
+    ITEM(globalDownloadSpeedLimit, int, "BitTorrent/Session/GlobalDLSpeedLimit", 0, lowerLimited(0));
+    ITEM(globalUploadSpeedLimit, int, "BitTorrent/Session/GlobalUPSpeedLimit", 0, lowerLimited(0));
+    ITEM(altGlobalDownloadSpeedLimit, int, "BitTorrent/Session/AlternativeGlobalDLSpeedLimit", 10, lowerLimited(0));
+    ITEM(altGlobalUploadSpeedLimit, int, "BitTorrent/Session/AlternativeGlobalUPSpeedLimit", 10, lowerLimited(0));
+    ITEM(isAltGlobalSpeedLimitEnabled, bool, "BitTorrent/Session/UseAlternativeGlobalSpeedLimit", false);
+    ITEM(isBandwidthSchedulerEnabled, bool, "BitTorrent/Session/BandwidthSchedulerEnabled", false);
+    ITEM(saveResumeDataInterval, int, "BitTorrent/Session/SaveResumeDataInterval", 60);
+    ITEM(port, int, "BitTorrent/Session/Port", -1);
+    ITEM(useRandomPort, bool, "BitTorrent/Session/UseRandomPort", false);
+    ITEM(networkInterface, QString, "BitTorrent/Session/Interface");
+    ITEM(networkInterfaceName, QString, "BitTorrent/Session/InterfaceName");
+    ITEM(networkInterfaceAddress, QString, "BitTorrent/Session/InterfaceAddress");
+    ITEM(encryptionMode, int, "BitTorrent/Session/Encryption", 0);
+    ITEM(isProxyPeerConnectionsEnabled, bool, "BitTorrent/Session/ProxyPeerConnections", false);
+    ITEM(chokingAlgorithm, BitTorrent::ChokingAlgorithm, "BitTorrent/Session/ChokingAlgorithm", BitTorrent::ChokingAlgorithm::FixedSlots, clampValue(BitTorrent::ChokingAlgorithm::FixedSlots, BitTorrent::ChokingAlgorithm::RateBased));
+    ITEM(seedChokingAlgorithm, BitTorrent::SeedChokingAlgorithm, "BitTorrent/Session/SeedChokingAlgorithm", BitTorrent::SeedChokingAlgorithm::FastestUpload, clampValue(BitTorrent::SeedChokingAlgorithm::RoundRobin, BitTorrent::SeedChokingAlgorithm::AntiLeech));
+    ITEM(torrentCategories, QVariantMap, "BitTorrent/Session/Categories");
+    ITEM(torrentTags, QStringList, "BitTorrent/Session/Tags");
+    ITEM(maxRatioAction, int, "BitTorrent/Session/MaxRatioAction", 0 /*Pause*/);
+    ITEM(defaultSavePath, QString, "BitTorrent/Session/DefaultSavePath", specialFolderLocation(SpecialFolder::Downloads), Utils::Fs::normalizePath);
+    ITEM(tempPath, QString, "BitTorrent/Session/TempPath", defaultSavePath() + "temp/", Utils::Fs::normalizePath);
+    ITEM(isSubcategoriesEnabled, bool, "BitTorrent/Session/SubcategoriesEnabled", false);
+    ITEM(isTempPathEnabled, bool, "BitTorrent/Session/TempPathEnabled", false);
+    ITEM(isAutoTMMDisabledByDefault, bool, "BitTorrent/Session/DisableAutoTMMByDefault", true);
+    ITEM(isDisableAutoTMMWhenCategoryChanged, bool, "BitTorrent/Session/DisableAutoTMMTriggers/CategoryChanged", false);
+    ITEM(isDisableAutoTMMWhenDefaultSavePathChanged, bool, "BitTorrent/Session/DisableAutoTMMTriggers/DefaultSavePathChanged", true);
+    ITEM(isDisableAutoTMMWhenCategorySavePathChanged, bool, "BitTorrent/Session/DisableAutoTMMTriggers/CategorySavePathChanged", true);
+    ITEM(isTrackerEnabled, bool, "BitTorrent/TrackerEnabled", false);
+#ifdef Q_OS_WIN
+    ITEM(osMemoryPriority, OSMemoryPriority, "BitTorrent/OSMemoryPriority", OSMemoryPriority::BelowNormal);
+#endif
 
 public slots:
     void setStatusFilterState(bool checked);

@@ -57,7 +57,7 @@
 #include <QDBusInterface>
 #endif
 
-#include "base/types.h"
+#include "base/basedefs.h"
 #include "base/unicodestrings.h"
 #include "base/utils/string.h"
 
@@ -95,7 +95,7 @@ namespace
     }
 }
 
-void Utils::Misc::shutdownComputer(const ShutdownDialogAction &action)
+void Utils::Misc::shutdownComputer(const ShutdownAction &action)
 {
 #if defined(Q_OS_WIN)
     HANDLE hToken;            // handle to process token
@@ -119,10 +119,10 @@ void Utils::Misc::shutdownComputer(const ShutdownDialogAction &action)
     if (GetLastError() != ERROR_SUCCESS)
         return;
 
-    if (action == ShutdownDialogAction::Suspend) {
+    if (action == ShutdownAction::Suspend) {
         ::SetSuspendState(false, false, false);
     }
-    else if (action == ShutdownDialogAction::Hibernate) {
+    else if (action == ShutdownAction::Hibernate) {
         ::SetSuspendState(true, false, false);
     }
     else {

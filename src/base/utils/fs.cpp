@@ -371,3 +371,11 @@ bool Utils::Fs::isNetworkFileSystem(const QString &path)
 #endif // Q_OS_WIN
 }
 #endif // Q_OS_HAIKU
+
+QString Utils::Fs::normalizePath(const QString &path)
+{
+    QString tmp = Utils::Fs::toUniformPath(path.trimmed());
+    if (!tmp.isEmpty() && !tmp.endsWith('/'))
+        return tmp + '/';
+    return tmp;
+}

@@ -33,7 +33,7 @@
 
 #include "base/bittorrent/torrenthandle.h"
 #include "base/global.h"
-#include "base/types.h"
+#include "base/basedefs.h"
 #include "base/utils/string.h"
 #include "transferlistmodel.h"
 

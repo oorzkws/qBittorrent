@@ -91,26 +91,25 @@ void AppController::shutdownAction()
 void AppController::preferencesAction()
 {
     const Preferences *const pref = Preferences::instance();
-    const auto *session = BitTorrent::Session::instance();
     QJsonObject data;
 
     // Downloads
     // When adding a torrent
-    data["create_subfolder_enabled"] = session->isCreateTorrentSubfolder();
-    data["start_paused_enabled"] = session->isAddTorrentPaused();
+    data["create_subfolder_enabled"] = pref->isCreateTorrentSubfolderEnabled();
+    data["start_paused_enabled"] = pref->isAddTorrentPaused();
     data["auto_delete_mode"] = static_cast<int>(TorrentFileGuard::autoDeleteMode());
-    data["preallocate_all"] = session->isPreallocationEnabled();
-    data["incomplete_files_ext"] = session->isAppendExtensionEnabled();
+    data["preallocate_all"] = pref->isPreallocationEnabled();
+    data["incomplete_files_ext"] = pref->isAppendExtensionEnabled();
     // Saving Management
-    data["auto_tmm_enabled"] = !session->isAutoTMMDisabledByDefault();
-    data["torrent_changed_tmm_enabled"] = !session->isDisableAutoTMMWhenCategoryChanged();
-    data["save_path_changed_tmm_enabled"] = !session->isDisableAutoTMMWhenDefaultSavePathChanged();
-    data["category_changed_tmm_enabled"] = !session->isDisableAutoTMMWhenCategorySavePathChanged();
-    data["save_path"] = Utils::Fs::toNativePath(session->defaultSavePath());
-    data["temp_path_enabled"] = session->isTempPathEnabled();
-    data["temp_path"] = Utils::Fs::toNativePath(session->tempPath());
-    data["export_dir"] = Utils::Fs::toNativePath(session->torrentExportDirectory());
-    data["export_dir_fin"] = Utils::Fs::toNativePath(session->finishedTorrentExportDirectory());
+    data["auto_tmm_enabled"] = !pref->isAutoTMMDisabledByDefault();
+    data["torrent_changed_tmm_enabled"] = !pref->isDisableAutoTMMWhenCategoryChanged();
+    data["save_path_changed_tmm_enabled"] = !pref->isDisableAutoTMMWhenDefaultSavePathChanged();
+    data["category_changed_tmm_enabled"] = !pref->isDisableAutoTMMWhenCategorySavePathChanged();
+    data["save_path"] = Utils::Fs::toNativePath(pref->defaultSavePath());
+    data["temp_path_enabled"] = pref->isTempPathEnabled();
+    data["temp_path"] = Utils::Fs::toNativePath(pref->tempPath());
+    data["export_dir"] = Utils::Fs::toNativePath(pref->torrentExportDirectory());
+    data["export_dir_fin"] = Utils::Fs::toNativePath(pref->finishedTorrentExportDirectory());
     // Automatically add torrents from
     const QVariantHash dirs = pref->getScanDirs();
     QJsonObject nativeDirs;
@@ -136,14 +135,14 @@ void AppController::preferencesAction()
 
     // Connection
     // Listening Port
-    data["listen_port"] = session->port();
+    data["listen_port"] = pref->port();
     data["upnp"] = pref->isPortForwardingEnabled();
-    data["random_port"] = session->useRandomPort();
+    data["random_port"] = pref->useRandomPort();
     // Connections Limits
-    data["max_connec"] = session->maxConnections();
-    data["max_connec_per_torrent"] = session->maxConnectionsPerTorrent();
-    data["max_uploads"] = session->maxUploads();
-    data["max_uploads_per_torrent"] = session->maxUploadsPerTorrent();
+    data["max_connec"] = pref->maxConnections();
+    data["max_connec_per_torrent"] = pref->maxConnectionsPerTorrent();
+    data["max_uploads"] = pref->maxUploads();
+    data["max_uploads_per_torrent"] = pref->maxUploadsPerTorrent();
 
     // Proxy Server
     const Net::ProxyType proxyType = pref->proxyType();
@@ -154,27 +153,26 @@ void AppController::preferencesAction()
     data["proxy_username"] = pref->proxyUsername();
     data["proxy_password"] = pref->proxyPassword();
 
-    data["proxy_peer_connections"] = session->isProxyPeerConnectionsEnabled();
+    data["proxy_peer_connections"] = pref->isProxyPeerConnectionsEnabled();
     data["proxy_torrents_only"] = pref->isProxyOnlyForTorrents();
 
     // IP Filtering
-    data["ip_filter_enabled"] = session->isIPFilteringEnabled();
-    data["ip_filter_path"] = Utils::Fs::toNativePath(session->IPFilterFile());
-    data["ip_filter_trackers"] = session->isTrackerFilteringEnabled();
-    data["banned_IPs"] = session->bannedIPs().join("\n");
+    data["ip_filter_enabled"] = pref->isIPFilteringEnabled();
+    data["ip_filter_path"] = Utils::Fs::toNativePath(pref->ipFilterFile());
+    data["ip_filter_trackers"] = pref->isTrackerFilteringEnabled();
 
     // Speed
     // Global Rate Limits
-    data["dl_limit"] = session->globalDownloadSpeedLimit();
-    data["up_limit"] = session->globalUploadSpeedLimit();
-    data["alt_dl_limit"] = session->altGlobalDownloadSpeedLimit();
-    data["alt_up_limit"] = session->altGlobalUploadSpeedLimit();
-    data["bittorrent_protocol"] = static_cast<int>(session->btProtocol());
-    data["limit_utp_rate"] = session->isUTPRateLimited();
-    data["limit_tcp_overhead"] = session->includeOverheadInLimits();
-    data["limit_lan_peers"] = !session->ignoreLimitsOnLAN();
+    data["dl_limit"] = pref->globalDownloadSpeedLimit();
+    data["up_limit"] = pref->globalUploadSpeedLimit();
+    data["alt_dl_limit"] = pref->altGlobalDownloadSpeedLimit();
+    data["alt_up_limit"] = pref->altGlobalUploadSpeedLimit();
+    data["bittorrent_protocol"] = static_cast<int>(pref->btProtocol());
+    data["limit_utp_rate"] = pref->isUTPRateLimited();
+    data["limit_tcp_overhead"] = pref->includeOverheadInLimits();
+    data["limit_lan_peers"] = !pref->ignoreLimitsOnLAN();
     // Scheduling
-    data["scheduler_enabled"] = session->isBandwidthSchedulerEnabled();
+    data["scheduler_enabled"] = pref->isBandwidthSchedulerEnabled();
     const QTime start_time = pref->getSchedulerStartTime();
     data["schedule_from_hour"] = start_time.hour();
     data["schedule_from_min"] = start_time.minute();
@@ -185,29 +183,29 @@ void AppController::preferencesAction()
 
     // Bittorrent
     // Privacy
-    data["dht"] = session->isDHTEnabled();
-    data["pex"] = session->isPeXEnabled();
-    data["lsd"] = session->isLSDEnabled();
-    data["encryption"] = session->encryption();
-    data["anonymous_mode"] = session->isAnonymousModeEnabled();
+    data["dht"] = pref->isDHTEnabled();
+    data["pex"] = pref->isPeXEnabled();
+    data["lsd"] = pref->isLSDEnabled();
+    data["encryption"] = pref->encryptionMode();
+    data["anonymous_mode"] = pref->isAnonymousModeEnabled();
     // Torrent Queueing
-    data["queueing_enabled"] = session->isQueueingSystemEnabled();
-    data["max_active_downloads"] = session->maxActiveDownloads();
-    data["max_active_torrents"] = session->maxActiveTorrents();
-    data["max_active_uploads"] = session->maxActiveUploads();
-    data["dont_count_slow_torrents"] = session->ignoreSlowTorrentsForQueueing();
-    data["slow_torrent_dl_rate_threshold"] = session->downloadRateForSlowTorrents();
-    data["slow_torrent_ul_rate_threshold"] = session->uploadRateForSlowTorrents();
-    data["slow_torrent_inactive_timer"] = session->slowTorrentsInactivityTimer();
+    data["queueing_enabled"] = pref->isQueueingSystemEnabled();
+    data["max_active_downloads"] = pref->maxActiveDownloads();
+    data["max_active_torrents"] = pref->maxActiveTorrents();
+    data["max_active_uploads"] = pref->maxActiveUploads();
+    data["dont_count_slow_torrents"] = pref->ignoreSlowTorrentsForQueueing();
+    data["slow_torrent_dl_rate_threshold"] = pref->downloadRateForSlowTorrents();
+    data["slow_torrent_ul_rate_threshold"] = pref->uploadRateForSlowTorrents();
+    data["slow_torrent_inactive_timer"] = pref->slowTorrentsInactivityTimer();
     // Share Ratio Limiting
-    data["max_ratio_enabled"] = (session->globalMaxRatio() >= 0.);
-    data["max_ratio"] = session->globalMaxRatio();
-    data["max_seeding_time_enabled"] = (session->globalMaxSeedingMinutes() >= 0.);
-    data["max_seeding_time"] = session->globalMaxSeedingMinutes();
-    data["max_ratio_act"] = session->maxRatioAction();
+    data["max_ratio_enabled"] = (pref->globalMaxRatio() >= 0.);
+    data["max_ratio"] = pref->globalMaxRatio();
+    data["max_seeding_time_enabled"] = (pref->globalMaxSeedingMinutes() >= 0.);
+    data["max_seeding_time"] = pref->globalMaxSeedingMinutes();
+    data["max_ratio_act"] = pref->maxRatioAction();
     // Add trackers
-    data["add_trackers_enabled"] = session->isAddTrackersEnabled();
-    data["add_trackers"] = session->additionalTrackers();
+    data["add_trackers_enabled"] = pref->isAddTrackersEnabled();
+    data["add_trackers"] = pref->additionalTrackers();
 
     // Web UI
     // Language
@@ -255,11 +253,11 @@ void AppController::preferencesAction()
     // Advanced settings
     // qBitorrent preferences
     // Current network interface
-    data["current_network_interface"] = session->networkInterface();
+    data["current_network_interface"] = pref->networkInterface();
     // Current network interface address
     data["current_interface_address"] = BitTorrent::Session::instance()->networkInterfaceAddress();
     // Save resume data interval
-    data["save_resume_data_interval"] = static_cast<double>(session->saveResumeDataInterval());
+    data["save_resume_data_interval"] = static_cast<double>(pref->saveResumeDataInterval());
     // Recheck completed torrents
     data["recheck_completed_torrents"] = pref->recheckTorrentsOnCompletion();
     // Resolve peer countries
@@ -267,50 +265,50 @@ void AppController::preferencesAction()
 
     // libtorrent preferences
     // Async IO threads
-    data["async_io_threads"] = session->asyncIOThreads();
+    data["async_io_threads"] = pref->asyncIOThreadsCount();
     // File pool size
-    data["file_pool_size"] = session->filePoolSize();
+    data["file_pool_size"] = pref->filePoolSize();
     // Checking memory usage
-    data["checking_memory_use"] = session->checkingMemUsage();
+    data["checking_memory_use"] = pref->checkingMemUsage();
     // Disk write cache
-    data["disk_cache"] = session->diskCacheSize();
-    data["disk_cache_ttl"] = session->diskCacheTTL();
+    data["disk_cache"] = pref->diskCacheSize();
+    data["disk_cache_ttl"] = pref->diskCacheTTL();
     // Enable OS cache
-    data["enable_os_cache"] = session->useOSCache();
+    data["enable_os_cache"] = pref->useOSCache();
     // Coalesce reads & writes
-    data["enable_coalesce_read_write"] = session->isCoalesceReadWriteEnabled();
+    data["enable_coalesce_read_write"] = pref->isCoalesceReadWriteEnabled();
     // Piece Extent Affinity
-    data["enable_piece_extent_affinity"] = session->usePieceExtentAffinity();
+    data["enable_piece_extent_affinity"] = pref->usePieceExtentAffinity();
     // Suggest mode
-    data["enable_upload_suggestions"] = session->isSuggestModeEnabled();
+    data["enable_upload_suggestions"] = pref->isSuggestModeEnabled();
     // Send buffer watermark
-    data["send_buffer_watermark"] = session->sendBufferWatermark();
-    data["send_buffer_low_watermark"] = session->sendBufferLowWatermark();
-    data["send_buffer_watermark_factor"] = session->sendBufferWatermarkFactor();
+    data["send_buffer_watermark"] = pref->sendBufferWatermark();
+    data["send_buffer_low_watermark"] = pref->sendBufferLowWatermark();
+    data["send_buffer_watermark_factor"] = pref->sendBufferWatermarkFactor();
     // Socket listen backlog size
-    data["socket_backlog_size"] = session->socketBacklogSize();
+    data["socket_backlog_size"] = pref->socketBacklogSize();
     // Outgoing ports
-    data["outgoing_ports_min"] = session->outgoingPortsMin();
-    data["outgoing_ports_max"] = session->outgoingPortsMax();
+    data["outgoing_ports_min"] = pref->minOutgoingPort();
+    data["outgoing_ports_max"] = pref->maxOutgoingPort();
     // uTP-TCP mixed mode
-    data["utp_tcp_mixed_mode"] = static_cast<int>(session->utpMixedMode());
+    data["utp_tcp_mixed_mode"] = static_cast<int>(pref->utpMixedMode());
     // Multiple connections per IP
-    data["enable_multi_connections_from_same_ip"] = session->multiConnectionsPerIpEnabled();
+    data["enable_multi_connections_from_same_ip"] = pref->isMultiConnectionsPerIPEnabled();
     // Embedded tracker
-    data["enable_embedded_tracker"] = session->isTrackerEnabled();
+    data["enable_embedded_tracker"] = pref->isTrackerEnabled();
     data["embedded_tracker_port"] = pref->getTrackerPort();
     // Choking algorithm
-    data["upload_slots_behavior"] = static_cast<int>(session->chokingAlgorithm());
+    data["upload_slots_behavior"] = static_cast<int>(pref->chokingAlgorithm());
     // Seed choking algorithm
-    data["upload_choking_algorithm"] = static_cast<int>(session->seedChokingAlgorithm());
+    data["upload_choking_algorithm"] = static_cast<int>(pref->seedChokingAlgorithm());
     // Super seeding
-    data["enable_super_seeding"] = session->isSuperSeedingEnabled();
+    data["enable_super_seeding"] = pref->isSuperSeedingEnabled();
     // Announce
-    data["announce_to_all_trackers"] = session->announceToAllTrackers();
-    data["announce_to_all_tiers"] = session->announceToAllTiers();
-    data["announce_ip"] = session->announceIP();
+    data["announce_to_all_trackers"] = pref->announceToAllTrackers();
+    data["announce_to_all_tiers"] = pref->announceToAllTiers();
+    data["announce_ip"] = pref->announceIP();
     // Stop tracker timeout
-    data["stop_tracker_timeout"] = session->stopTrackerTimeout();
+    data["stop_tracker_timeout"] = pref->stopTrackerTimeout();
 
     setResult(data);
 }
@@ -320,7 +318,6 @@ void AppController::setPreferencesAction()
     requireParams({"json"});
 
     Preferences *const pref = Preferences::instance();
-    auto session = BitTorrent::Session::instance();
     const QVariantHash m = QJsonDocument::fromJson(params()["json"].toUtf8()).toVariant().toHash();
 
     QVariantHash::ConstIterator it;
@@ -333,36 +330,36 @@ void AppController::setPreferencesAction()
     // Downloads
     // When adding a torrent
     if (hasKey("create_subfolder_enabled"))
-        session->setCreateTorrentSubfolder(it.value().toBool());
+        pref->isCreateTorrentSubfolderEnabled.set(it.value().toBool());
     if (hasKey("start_paused_enabled"))
-        session->setAddTorrentPaused(it.value().toBool());
+        pref->isAddTorrentPaused.set(it.value().toBool());
     if (hasKey("auto_delete_mode"))
         TorrentFileGuard::setAutoDeleteMode(static_cast<TorrentFileGuard::AutoDeleteMode>(it.value().toInt()));
 
     if (hasKey("preallocate_all"))
-        session->setPreallocationEnabled(it.value().toBool());
+        pref->isPreallocationEnabled.set(it.value().toBool());
     if (hasKey("incomplete_files_ext"))
-        session->setAppendExtensionEnabled(it.value().toBool());
+        pref->isAppendExtensionEnabled.set(it.value().toBool());
 
     // Saving Management
     if (hasKey("auto_tmm_enabled"))
-        session->setAutoTMMDisabledByDefault(!it.value().toBool());
+        pref->isAutoTMMDisabledByDefault.set(!it.value().toBool());
     if (hasKey("torrent_changed_tmm_enabled"))
-        session->setDisableAutoTMMWhenCategoryChanged(!it.value().toBool());
+        pref->isDisableAutoTMMWhenCategoryChanged.set(!it.value().toBool());
     if (hasKey("save_path_changed_tmm_enabled"))
-        session->setDisableAutoTMMWhenDefaultSavePathChanged(!it.value().toBool());
+        pref->isDisableAutoTMMWhenDefaultSavePathChanged.set(!it.value().toBool());
     if (hasKey("category_changed_tmm_enabled"))
-        session->setDisableAutoTMMWhenCategorySavePathChanged(!it.value().toBool());
+        pref->isDisableAutoTMMWhenCategorySavePathChanged.set(!it.value().toBool());
     if (hasKey("save_path"))
-        session->setDefaultSavePath(it.value().toString());
+        pref->defaultSavePath.set(it.value().toString());
     if (hasKey("temp_path_enabled"))
-        session->setTempPathEnabled(it.value().toBool());
+        pref->isTempPathEnabled.set(it.value().toBool());
     if (hasKey("temp_path"))
-        session->setTempPath(it.value().toString());
+        pref->tempPath.set(it.value().toString());
     if (hasKey("export_dir"))
-        session->setTorrentExportDirectory(it.value().toString());
+        pref->torrentExportDirectory.set(it.value().toString());
     if (hasKey("export_dir_fin"))
-        session->setFinishedTorrentExportDirectory(it.value().toString());
+        pref->finishedTorrentExportDirectory.set(it.value().toString());
     // Automatically add torrents from
     if (hasKey("scan_dirs")) {
         const QVariantHash nativeDirs = it.value().toHash();
@@ -433,20 +430,20 @@ void AppController::setPreferencesAction()
     // Connection
     // Listening Port
     if (hasKey("listen_port"))
-        session->setPort(it.value().toInt());
+        pref->port.set(it.value().toInt());
     if (hasKey("upnp"))
         pref->setPortForwardingEnabled(it.value().toBool());
     if (hasKey("random_port"))
-        session->setUseRandomPort(it.value().toBool());
+        pref->useRandomPort.set(it.value().toBool());
     // Connections Limits
     if (hasKey("max_connec"))
-        session->setMaxConnections(it.value().toInt());
+        pref->maxConnections.set(it.value().toInt());
     if (hasKey("max_connec_per_torrent"))
-        session->setMaxConnectionsPerTorrent(it.value().toInt());
+        pref->maxConnectionsPerTorrent.set(it.value().toInt());
     if (hasKey("max_uploads"))
-        session->setMaxUploads(it.value().toInt());
+        pref->maxUploads.set(it.value().toInt());
     if (hasKey("max_uploads_per_torrent"))
-        session->setMaxUploadsPerTorrent(it.value().toInt());
+        pref->maxUploadsPerTorrent.set(it.value().toInt());
 
     // Proxy Server
     if (hasKey("proxy_type"))
@@ -462,39 +459,37 @@ void AppController::setPreferencesAction()
     if (hasKey("proxy_torrents_only"))
         pref->setProxyOnlyForTorrents(it.value().toBool());
     if (hasKey("proxy_peer_connections"))
-        session->setProxyPeerConnectionsEnabled(it.value().toBool());
+        pref->isProxyPeerConnectionsEnabled.set(it.value().toBool());
 
     // IP Filtering
     if (hasKey("ip_filter_enabled"))
-        session->setIPFilteringEnabled(it.value().toBool());
+        pref->isIPFilteringEnabled.set(it.value().toBool());
     if (hasKey("ip_filter_path"))
-        session->setIPFilterFile(it.value().toString());
+        pref->ipFilterFile.set(it.value().toString());
     if (hasKey("ip_filter_trackers"))
-        session->setTrackerFilteringEnabled(it.value().toBool());
-    if (hasKey("banned_IPs"))
-        session->setBannedIPs(it.value().toString().split('\n'));
+        pref->isTrackerFilteringEnabled.set(it.value().toBool());
 
     // Speed
     // Global Rate Limits
     if (hasKey("dl_limit"))
-        session->setGlobalDownloadSpeedLimit(it.value().toInt());
+        pref->globalDownloadSpeedLimit.set(it.value().toInt());
     if (hasKey("up_limit"))
-        session->setGlobalUploadSpeedLimit(it.value().toInt());
+        pref->globalUploadSpeedLimit.set(it.value().toInt());
     if (hasKey("alt_dl_limit"))
-        session->setAltGlobalDownloadSpeedLimit(it.value().toInt());
+        pref->altGlobalDownloadSpeedLimit.set(it.value().toInt());
     if (hasKey("alt_up_limit"))
-       session->setAltGlobalUploadSpeedLimit(it.value().toInt());
+       pref->altGlobalUploadSpeedLimit.set(it.value().toInt());
     if (hasKey("bittorrent_protocol"))
-        session->setBTProtocol(static_cast<BitTorrent::BTProtocol>(it.value().toInt()));
+        pref->btProtocol.set(static_cast<BitTorrent::BTProtocol>(it.value().toInt()));
     if (hasKey("limit_utp_rate"))
-        session->setUTPRateLimited(it.value().toBool());
+        pref->isUTPRateLimited.set(it.value().toBool());
     if (hasKey("limit_tcp_overhead"))
-        session->setIncludeOverheadInLimits(it.value().toBool());
+        pref->includeOverheadInLimits.set(it.value().toBool());
     if (hasKey("limit_lan_peers"))
-        session->setIgnoreLimitsOnLAN(!it.value().toBool());
+        pref->ignoreLimitsOnLAN.set(!it.value().toBool());
     // Scheduling
     if (hasKey("scheduler_enabled"))
-        session->setBandwidthSchedulerEnabled(it.value().toBool());
+        pref->isBandwidthSchedulerEnabled.set(it.value().toBool());
     if (m.contains("schedule_from_hour") && m.contains("schedule_from_min"))
         pref->setSchedulerStartTime(QTime(m["schedule_from_hour"].toInt(), m["schedule_from_min"].toInt()));
     if (m.contains("schedule_to_hour") && m.contains("schedule_to_min"))
@@ -505,50 +500,50 @@ void AppController::setPreferencesAction()
     // Bittorrent
     // Privacy
     if (hasKey("dht"))
-        session->setDHTEnabled(it.value().toBool());
+        pref->isDHTEnabled.set(it.value().toBool());
     if (hasKey("pex"))
-        session->setPeXEnabled(it.value().toBool());
+        pref->isPeXEnabled.set(it.value().toBool());
     if (hasKey("lsd"))
-        session->setLSDEnabled(it.value().toBool());
+        pref->isLSDEnabled.set(it.value().toBool());
     if (hasKey("encryption"))
-        session->setEncryption(it.value().toInt());
+        pref->encryptionMode.set(it.value().toInt());
     if (hasKey("anonymous_mode"))
-        session->setAnonymousModeEnabled(it.value().toBool());
+        pref->isAnonymousModeEnabled.set(it.value().toBool());
     // Torrent Queueing
     if (hasKey("queueing_enabled"))
-        session->setQueueingSystemEnabled(it.value().toBool());
+        pref->isQueueingSystemEnabled.set(it.value().toBool());
     if (hasKey("max_active_downloads"))
-        session->setMaxActiveDownloads(it.value().toInt());
+        pref->maxActiveDownloads.set(it.value().toInt());
     if (hasKey("max_active_torrents"))
-        session->setMaxActiveTorrents(it.value().toInt());
+        pref->maxActiveTorrents.set(it.value().toInt());
     if (hasKey("max_active_uploads"))
-        session->setMaxActiveUploads(it.value().toInt());
+        pref->maxActiveUploads.set(it.value().toInt());
     if (hasKey("dont_count_slow_torrents"))
-        session->setIgnoreSlowTorrentsForQueueing(it.value().toBool());
+        pref->ignoreSlowTorrentsForQueueing.set(it.value().toBool());
     if (hasKey("slow_torrent_dl_rate_threshold"))
-        session->setDownloadRateForSlowTorrents(it.value().toInt());
+        pref->downloadRateForSlowTorrents.set(it.value().toInt());
     if (hasKey("slow_torrent_ul_rate_threshold"))
-        session->setUploadRateForSlowTorrents(it.value().toInt());
+        pref->uploadRateForSlowTorrents.set(it.value().toInt());
     if (hasKey("slow_torrent_inactive_timer"))
-        session->setSlowTorrentsInactivityTimer(it.value().toInt());
+        pref->slowTorrentsInactivityTimer.set(it.value().toInt());
     // Share Ratio Limiting
     if (hasKey("max_ratio_enabled")) {
         if (it.value().toBool())
-            session->setGlobalMaxRatio(m["max_ratio"].toReal());
+            pref->globalMaxRatio.set(m["max_ratio"].toReal());
         else
-            session->setGlobalMaxRatio(-1);
+            pref->globalMaxRatio.set(-1);
     }
     if (hasKey("max_seeding_time_enabled")) {
         if (it.value().toBool())
-            session->setGlobalMaxSeedingMinutes(m["max_seeding_time"].toInt());
+            pref->globalMaxSeedingMinutes.set(m["max_seeding_time"].toInt());
         else
-            session->setGlobalMaxSeedingMinutes(-1);
+            pref->globalMaxSeedingMinutes.set(-1);
     }
     if (hasKey("max_ratio_act"))
-        session->setMaxRatioAction(static_cast<MaxRatioAction>(it.value().toInt()));
+        pref->maxRatioAction.set(static_cast<MaxRatioAction>(it.value().toInt()));
     // Add trackers
-    session->setAddTrackersEnabled(m["add_trackers_enabled"].toBool());
-    session->setAdditionalTrackers(m["add_trackers"].toString());
+    pref->isAddTrackersEnabled.set(m["add_trackers_enabled"].toBool());
+    pref->additionalTrackers.set(m["add_trackers"].toString());
 
     // Web UI
     // Language
@@ -649,17 +644,17 @@ void AppController::setPreferencesAction()
         });
         const QString ifaceName = (ifacesIter != ifaces.cend()) ? ifacesIter->humanReadableName() : QString {};
 
-        session->setNetworkInterface(ifaceValue);
-        session->setNetworkInterfaceName(ifaceName);
+        pref->networkInterface.set(ifaceValue);
+        pref->networkInterfaceName.set(ifaceName);
     }
     // Current network interface address
     if (hasKey("current_interface_address")) {
         const QHostAddress ifaceAddress {it.value().toString().trimmed()};
-        session->setNetworkInterfaceAddress(ifaceAddress.isNull() ? QString {} : ifaceAddress.toString());
+        pref->networkInterfaceAddress.set(ifaceAddress.isNull() ? QString {} : ifaceAddress.toString());
     }
     // Save resume data interval
     if (hasKey("save_resume_data_interval"))
-        session->setSaveResumeDataInterval(it.value().toInt());
+        pref->saveResumeDataInterval.set(it.value().toInt());
     // Recheck completed torrents
     if (hasKey("recheck_completed_torrents"))
         pref->recheckTorrentsOnCompletion(it.value().toBool());
@@ -670,77 +665,77 @@ void AppController::setPreferencesAction()
     // libtorrent preferences
     // Async IO threads
     if (hasKey("async_io_threads"))
-        session->setAsyncIOThreads(it.value().toInt());
+        pref->asyncIOThreadsCount.set(it.value().toInt());
     // File pool size
     if (hasKey("file_pool_size"))
-        session->setFilePoolSize(it.value().toInt());
+        pref->filePoolSize.set(it.value().toInt());
     // Checking Memory Usage
     if (hasKey("checking_memory_use"))
-        session->setCheckingMemUsage(it.value().toInt());
+        pref->checkingMemUsage.set(it.value().toInt());
     // Disk write cache
     if (hasKey("disk_cache"))
-        session->setDiskCacheSize(it.value().toInt());
+        pref->diskCacheSize.set(it.value().toInt());
     if (hasKey("disk_cache_ttl"))
-        session->setDiskCacheTTL(it.value().toInt());
+        pref->diskCacheTTL.set(it.value().toInt());
     // Enable OS cache
     if (hasKey("enable_os_cache"))
-        session->setUseOSCache(it.value().toBool());
+        pref->useOSCache.set(it.value().toBool());
     // Coalesce reads & writes
     if (hasKey("enable_coalesce_read_write"))
-        session->setCoalesceReadWriteEnabled(it.value().toBool());
+        pref->isCoalesceReadWriteEnabled.set(it.value().toBool());
     // Piece extent affinity
     if (hasKey("enable_piece_extent_affinity"))
-        session->setPieceExtentAffinity(it.value().toBool());
+        pref->usePieceExtentAffinity.set(it.value().toBool());
     // Suggest mode
     if (hasKey("enable_upload_suggestions"))
-        session->setSuggestMode(it.value().toBool());
+        pref->isSuggestModeEnabled.set(it.value().toBool());
     // Send buffer watermark
     if (hasKey("send_buffer_watermark"))
-        session->setSendBufferWatermark(it.value().toInt());
+        pref->sendBufferWatermark.set(it.value().toInt());
     if (hasKey("send_buffer_low_watermark"))
-        session->setSendBufferLowWatermark(it.value().toInt());
+        pref->sendBufferLowWatermark.set(it.value().toInt());
     if (hasKey("send_buffer_watermark_factor"))
-        session->setSendBufferWatermarkFactor(it.value().toInt());
+        pref->sendBufferWatermarkFactor.set(it.value().toInt());
     // Socket listen backlog size
     if (hasKey("socket_backlog_size"))
-        session->setSocketBacklogSize(it.value().toInt());
+        pref->socketBacklogSize.set(it.value().toInt());
     // Outgoing ports
     if (hasKey("outgoing_ports_min"))
-        session->setOutgoingPortsMin(it.value().toInt());
+        pref->minOutgoingPort.set(it.value().toInt());
     if (hasKey("outgoing_ports_max"))
-        session->setOutgoingPortsMax(it.value().toInt());
+        pref->maxOutgoingPort.set(it.value().toInt());
     // uTP-TCP mixed mode
     if (hasKey("utp_tcp_mixed_mode"))
-        session->setUtpMixedMode(static_cast<BitTorrent::MixedModeAlgorithm>(it.value().toInt()));
+        pref->utpMixedMode.set(static_cast<BitTorrent::MixedModeAlgorithm>(it.value().toInt()));
     // Multiple connections per IP
     if (hasKey("enable_multi_connections_from_same_ip"))
-        session->setMultiConnectionsPerIpEnabled(it.value().toBool());
+        pref->isMultiConnectionsPerIPEnabled.set(it.value().toBool());
     // Embedded tracker
     if (hasKey("embedded_tracker_port"))
         pref->setTrackerPort(it.value().toInt());
     if (hasKey("enable_embedded_tracker"))
-        session->setTrackerEnabled(it.value().toBool());
+        pref->isTrackerEnabled.set(it.value().toBool());
     // Choking algorithm
     if (hasKey("upload_slots_behavior"))
-        session->setChokingAlgorithm(static_cast<BitTorrent::ChokingAlgorithm>(it.value().toInt()));
+        pref->chokingAlgorithm.set(static_cast<BitTorrent::ChokingAlgorithm>(it.value().toInt()));
     // Seed choking algorithm
     if (hasKey("upload_choking_algorithm"))
-        session->setSeedChokingAlgorithm(static_cast<BitTorrent::SeedChokingAlgorithm>(it.value().toInt()));
+        pref->seedChokingAlgorithm.set(static_cast<BitTorrent::SeedChokingAlgorithm>(it.value().toInt()));
     // Super seeding
     if (hasKey("enable_super_seeding"))
-        session->setSuperSeedingEnabled(it.value().toBool());
+        pref->isSuperSeedingEnabled.set(it.value().toBool());
     // Announce
     if (hasKey("announce_to_all_trackers"))
-        session->setAnnounceToAllTrackers(it.value().toBool());
+        pref->announceToAllTrackers.set(it.value().toBool());
     if (hasKey("announce_to_all_tiers"))
-        session->setAnnounceToAllTiers(it.value().toBool());
+        pref->announceToAllTiers.set(it.value().toBool());
     if (hasKey("announce_ip")) {
         const QHostAddress announceAddr {it.value().toString().trimmed()};
-        session->setAnnounceIP(announceAddr.isNull() ? QString {} : announceAddr.toString());
+        pref->announceIP.set(announceAddr.isNull() ? QString {} : announceAddr.toString());
     }
     // Stop tracker timeout
     if (hasKey("stop_tracker_timeout"))
-        session->setStopTrackerTimeout(it.value().toInt());
+        pref->stopTrackerTimeout.set(it.value().toInt());
 
     // Save preferences
     pref->notifyChanged();

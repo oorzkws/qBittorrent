@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2020  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2015  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,47 +26,38 @@
  * exception statement from your version.
  */
 
-#include "preferencesbase.h"
+#pragma once
 
-#include <QVariant>
+#include <QMap>
+#include <QObject>
 
-#include "settingsstorage.h"
+const qlonglong MAX_ETA = 8640000;
 
-bool PreferencesItemHandlerBase::isChanged() const
+typedef QMap<QString, QString> QStringMap;
+
+namespace BaseEnums
 {
-    return m_isChanged;
-}
+    Q_NAMESPACE
 
-void PreferencesItemHandlerBase::accept()
-{
-    m_isChanged = false;
-}
+    enum class ShutdownAction
+    {
+        Exit,
+        Shutdown,
+        Suspend,
+        Hibernate
+    };
+    Q_ENUM_NS(ShutdownAction)
 
-PreferencesBase::PreferencesBase(QObject *parent)
-    : QObject {parent}
-    , m_storage {SettingsStorage::instance()}
-{
+#ifdef Q_OS_WIN
+    enum class OSMemoryPriority
+    {
+        Normal = 0,
+        BelowNormal = 1,
+        Medium = 2,
+        Low = 3,
+        VeryLow = 4
+    };
+    Q_ENUM_NS(OSMemoryPriority)
+#endif
 }
-
-PreferencesBase::~PreferencesBase()
-{
-    qDeleteAll(m_itemHandlers);
-}
-
-void PreferencesBase::notifyChanged()
-{
-    m_storage->save(); // flush changes
-    emit changed();
-    for (PreferencesItemHandlerBase *itemHandler : m_itemHandlers)
-        itemHandler->accept();
-}
-
-const QVariant PreferencesBase::value(const QString &key, const QVariant &defaultValue) const
-{
-    return m_storage->loadValue(key, defaultValue);
-}
-
-void PreferencesBase::setValue(const QString &key, const QVariant &value)
-{
-    m_storage->storeValue(key, value);
-}
+using namespace BaseEnums;

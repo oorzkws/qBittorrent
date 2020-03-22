@@ -34,7 +34,7 @@
 #include <QString>
 #include <QVector>
 
-#include "base/types.h"
+#include "base/basedefs.h"
 
 namespace Http
 {

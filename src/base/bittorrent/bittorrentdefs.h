@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2020  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,21 +26,45 @@
  * exception statement from your version.
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#pragma once
 
-#include <QMap>
+#include <QObject>
 
-const qlonglong MAX_ETA = 8640000;
-
-enum class ShutdownDialogAction
+namespace BitTorrent
 {
-    Exit,
-    Shutdown,
-    Suspend,
-    Hibernate
-};
+    namespace BitTorrentEnums
+    {
+        Q_NAMESPACE
 
-typedef QMap<QString, QString> QStringMap;
+        enum class BTProtocol : int
+        {
+            Both = 0,
+            TCP = 1,
+            UTP = 2
+        };
+        Q_ENUM_NS(BTProtocol)
 
-#endif // TYPES_H
+        enum class ChokingAlgorithm : int
+        {
+            FixedSlots = 0,
+            RateBased = 1
+        };
+        Q_ENUM_NS(ChokingAlgorithm)
+
+        enum class MixedModeAlgorithm : int
+        {
+            TCP = 0,
+            Proportional = 1
+        };
+        Q_ENUM_NS(MixedModeAlgorithm)
+
+        enum class SeedChokingAlgorithm : int
+        {
+            RoundRobin = 0,
+            FastestUpload = 1,
+            AntiLeech = 2
+        };
+        Q_ENUM_NS(SeedChokingAlgorithm)
+    }
+    using namespace BitTorrentEnums;
+}

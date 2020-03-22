@@ -3,6 +3,7 @@ find_package(ZLIB 1.2.5.2 REQUIRED)
 add_library(qbt_base STATIC
 # headers
 bittorrent/addtorrentparams.h
+bittorrent/bittorrentdefs.h
 bittorrent/cachestatus.h
 bittorrent/downloadpriority.h
 bittorrent/infohash.h
@@ -66,6 +67,7 @@ utils/string.h
 utils/version.h
 algorithm.h
 asyncfilestorage.h
+basedefs.h
 exceptions.h
 filesystemwatcher.h
 global.h
@@ -80,7 +82,6 @@ settingsstorage.h
 torrentfileguard.h
 torrentfilter.h
 tristatebool.h
-types.h
 unicodestrings.h
 
 # sources

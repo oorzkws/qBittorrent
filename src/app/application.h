@@ -47,7 +47,7 @@ class QSessionManager;
 using BaseApplication = QCoreApplication;
 #endif // DISABLE_GUI
 
-#include "base/types.h"
+#include "base/basedefs.h"
 #include "cmdoptions.h"
 
 #ifndef DISABLE_WEBUI
@@ -100,14 +100,17 @@ private slots:
     void torrentFinished(BitTorrent::TorrentHandle *const torrent);
     void allTorrentsFinished();
     void cleanup();
-#if (!defined(DISABLE_GUI) && defined(Q_OS_WIN))
+#ifdef Q_OS_WIN
+#ifndef DISABLE_GUI
     void shutdownCleanup(QSessionManager &manager);
+#endif
+    void applyOSMemoryPriority(OSMemoryPriority osMemoryPriority) const;
 #endif
 
 private:
     ApplicationInstanceManager *m_instanceManager = nullptr;
     bool m_running;
-    ShutdownDialogAction m_shutdownAct;
+    ShutdownAction m_shutdownAct;
     QBtCommandLineParameters m_commandLineArgs;
 
 #ifndef DISABLE_GUI

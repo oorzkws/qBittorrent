@@ -35,7 +35,6 @@
 #include <QLabel>
 #include <QNetworkInterface>
 
-#include "base/bittorrent/session.h"
 #include "base/global.h"
 #include "base/preferences.h"
 #include "base/unicodestrings.h"
@@ -150,95 +149,94 @@ AdvancedSettings::AdvancedSettings(QWidget *parent)
 void AdvancedSettings::saveAdvancedSettings()
 {
     Preferences *const pref = Preferences::instance();
-    BitTorrent::Session *const session = BitTorrent::Session::instance();
 
 #if defined(Q_OS_WIN)
-    BitTorrent::OSMemoryPriority prio = BitTorrent::OSMemoryPriority::Normal;
+    OSMemoryPriority prio = OSMemoryPriority::Normal;
     switch (m_comboBoxOSMemoryPriority.currentIndex()) {
     case 0:
     default:
-        prio = BitTorrent::OSMemoryPriority::Normal;
+        prio = OSMemoryPriority::Normal;
         break;
     case 1:
-        prio = BitTorrent::OSMemoryPriority::BelowNormal;
+        prio = OSMemoryPriority::BelowNormal;
         break;
     case 2:
-        prio = BitTorrent::OSMemoryPriority::Medium;
+        prio = OSMemoryPriority::Medium;
         break;
     case 3:
-        prio = BitTorrent::OSMemoryPriority::Low;
+        prio = OSMemoryPriority::Low;
         break;
     case 4:
-        prio = BitTorrent::OSMemoryPriority::VeryLow;
+        prio = OSMemoryPriority::VeryLow;
         break;
     }
-    session->setOSMemoryPriority(prio);
+    pref->osMemoryPriority.set(prio);
 #endif
     // Async IO threads
-    session->setAsyncIOThreads(m_spinBoxAsyncIOThreads.value());
+    pref->asyncIOThreadsCount.set(m_spinBoxAsyncIOThreads.value());
     // File pool size
-    session->setFilePoolSize(m_spinBoxFilePoolSize.value());
+    pref->filePoolSize.set(m_spinBoxFilePoolSize.value());
     // Checking Memory Usage
-    session->setCheckingMemUsage(m_spinBoxCheckingMemUsage.value());
+    pref->checkingMemUsage.set(m_spinBoxCheckingMemUsage.value());
     // Disk write cache
-    session->setDiskCacheSize(m_spinBoxCache.value());
-    session->setDiskCacheTTL(m_spinBoxCacheTTL.value());
+    pref->diskCacheSize.set(m_spinBoxCache.value());
+    pref->diskCacheTTL.set(m_spinBoxCacheTTL.value());
     // Enable OS cache
-    session->setUseOSCache(m_checkBoxOsCache.isChecked());
+    pref->useOSCache.set(m_checkBoxOsCache.isChecked());
     // Coalesce reads & writes
-    session->setCoalesceReadWriteEnabled(m_checkBoxCoalesceRW.isChecked());
+    pref->isCoalesceReadWriteEnabled.set(m_checkBoxCoalesceRW.isChecked());
 #if (LIBTORRENT_VERSION_NUM >= 10202)
     // Piece extent affinity
-    session->setPieceExtentAffinity(m_checkBoxPieceExtentAffinity.isChecked());
+    pref->pieceExtentAffinity.set(m_checkBoxPieceExtentAffinity.isChecked());
 #endif
     // Suggest mode
-    session->setSuggestMode(m_checkBoxSuggestMode.isChecked());
+    pref->isSuggestModeEnabled.set(m_checkBoxSuggestMode.isChecked());
     // Send buffer watermark
-    session->setSendBufferWatermark(m_spinBoxSendBufferWatermark.value());
-    session->setSendBufferLowWatermark(m_spinBoxSendBufferLowWatermark.value());
-    session->setSendBufferWatermarkFactor(m_spinBoxSendBufferWatermarkFactor.value());
+    pref->sendBufferWatermark.set(m_spinBoxSendBufferWatermark.value());
+    pref->sendBufferLowWatermark.set(m_spinBoxSendBufferLowWatermark.value());
+    pref->sendBufferWatermarkFactor.set(m_spinBoxSendBufferWatermarkFactor.value());
     // Socket listen backlog size
-    session->setSocketBacklogSize(m_spinBoxSocketBacklogSize.value());
+    pref->socketBacklogSize.set(m_spinBoxSocketBacklogSize.value());
     // Save resume data interval
-    session->setSaveResumeDataInterval(m_spinBoxSaveResumeDataInterval.value());
+    pref->saveResumeDataInterval.set(m_spinBoxSaveResumeDataInterval.value());
     // Outgoing ports
-    session->setOutgoingPortsMin(m_spinBoxOutgoingPortsMin.value());
-    session->setOutgoingPortsMax(m_spinBoxOutgoingPortsMax.value());
+    pref->minOutgoingPort.set(m_spinBoxOutgoingPortsMin.value());
+    pref->maxOutgoingPort.set(m_spinBoxOutgoingPortsMax.value());
     // uTP-TCP mixed mode
-    session->setUtpMixedMode(static_cast<BitTorrent::MixedModeAlgorithm>(m_comboBoxUtpMixedMode.currentIndex()));
+    pref->utpMixedMode.set(static_cast<BitTorrent::MixedModeAlgorithm>(m_comboBoxUtpMixedMode.currentIndex()));
     // multiple connections per IP
-    session->setMultiConnectionsPerIpEnabled(m_checkBoxMultiConnectionsPerIp.isChecked());
+    pref->isMultiConnectionsPerIPEnabled.set(m_checkBoxMultiConnectionsPerIp.isChecked());
     // Recheck torrents on completion
     pref->recheckTorrentsOnCompletion(m_checkBoxRecheckCompleted.isChecked());
     // Transfer list refresh interval
-    session->setRefreshInterval(m_spinBoxListRefresh.value());
+    pref->refreshInterval.set(m_spinBoxListRefresh.value());
     // Peer resolution
     pref->resolvePeerCountries(m_checkBoxResolveCountries.isChecked());
     pref->resolvePeerHostNames(m_checkBoxResolveHosts.isChecked());
     // Super seeding
-    session->setSuperSeedingEnabled(m_checkBoxSuperSeeding.isChecked());
+    pref->isSuperSeedingEnabled.set(m_checkBoxSuperSeeding.isChecked());
     // Network interface
     if (m_comboBoxInterface.currentIndex() == 0) {
         // All interfaces (default)
-        session->setNetworkInterface(QString());
-        session->setNetworkInterfaceName(QString());
+        pref->networkInterface.set(QString());
+        pref->networkInterfaceName.set(QString());
     }
     else {
-        session->setNetworkInterface(m_comboBoxInterface.itemData(m_comboBoxInterface.currentIndex()).toString());
-        session->setNetworkInterfaceName(m_comboBoxInterface.currentText());
+        pref->networkInterface.set(m_comboBoxInterface.itemData(m_comboBoxInterface.currentIndex()).toString());
+        pref->networkInterfaceName.set(m_comboBoxInterface.currentText());
     }
 
     // Interface address
     // Construct a QHostAddress to filter malformed strings
     const QHostAddress ifaceAddr(m_comboBoxInterfaceAddress.currentData().toString().trimmed());
-    session->setNetworkInterfaceAddress(ifaceAddr.toString());
+    pref->networkInterfaceAddress.set(ifaceAddr.toString());
 
     // Announce IP
     // Construct a QHostAddress to filter malformed strings
     const QHostAddress addr(m_lineEditAnnounceIP.text().trimmed());
-    session->setAnnounceIP(addr.toString());
+    pref->announceIP.set(addr.toString());
     // Stop tracker timeout
-    session->setStopTrackerTimeout(m_spinBoxStopTrackerTimeout.value());
+    pref->stopTrackerTimeout.set(m_spinBoxStopTrackerTimeout.value());
     // Program notification
     pref->setNotificationsEnabled(m_checkBoxProgramNotifications.isChecked());
     pref->setTorrentAddedNotificationsEnabled(m_checkBoxTorrentAddedNotifications.isChecked());
@@ -249,18 +247,18 @@ void AdvancedSettings::saveAdvancedSettings()
 
     // Tracker
     pref->setTrackerPort(m_spinBoxTrackerPort.value());
-    session->setTrackerEnabled(m_checkBoxTrackerStatus.isChecked());
+    pref->isTrackerEnabled.set(m_checkBoxTrackerStatus.isChecked());
     // Choking algorithm
-    session->setChokingAlgorithm(static_cast<BitTorrent::ChokingAlgorithm>(m_comboBoxChokingAlgorithm.currentIndex()));
+    pref->chokingAlgorithm.set(static_cast<BitTorrent::ChokingAlgorithm>(m_comboBoxChokingAlgorithm.currentIndex()));
     // Seed choking algorithm
-    session->setSeedChokingAlgorithm(static_cast<BitTorrent::SeedChokingAlgorithm>(m_comboBoxSeedChokingAlgorithm.currentIndex()));
+    pref->seedChokingAlgorithm.set(static_cast<BitTorrent::SeedChokingAlgorithm>(m_comboBoxSeedChokingAlgorithm.currentIndex()));
 
     pref->setConfirmTorrentRecheck(m_checkBoxConfirmTorrentRecheck.isChecked());
 
     pref->setConfirmRemoveAllTags(m_checkBoxConfirmRemoveAllTags.isChecked());
 
-    session->setAnnounceToAllTrackers(m_checkBoxAnnounceAllTrackers.isChecked());
-    session->setAnnounceToAllTiers(m_checkBoxAnnounceAllTiers.isChecked());
+    pref->announceToAllTrackers.set(m_checkBoxAnnounceAllTrackers.isChecked());
+    pref->announceToAllTiers.set(m_checkBoxAnnounceAllTiers.isChecked());
 }
 
 void AdvancedSettings::updateCacheSpinSuffix(int value)
@@ -285,7 +283,7 @@ void AdvancedSettings::updateInterfaceAddressCombo()
 {
     // Try to get the currently selected interface name
     const QString ifaceName = m_comboBoxInterface.itemData(m_comboBoxInterface.currentIndex()).toString(); // Empty string for the first element
-    const QString currentAddress = BitTorrent::Session::instance()->networkInterfaceAddress();
+    const QString currentAddress = Preferences::instance()->networkInterfaceAddress();
 
     // Clear all items and reinsert them, default to all
     m_comboBoxInterfaceAddress.clear();
@@ -323,7 +321,6 @@ void AdvancedSettings::updateInterfaceAddressCombo()
 void AdvancedSettings::loadAdvancedSettings()
 {
     const Preferences *const pref = Preferences::instance();
-    const BitTorrent::Session *const session = BitTorrent::Session::instance();
 
     // add section headers
     auto *labelQbtLink = new QLabel(
@@ -345,21 +342,21 @@ void AdvancedSettings::loadAdvancedSettings()
 #if defined(Q_OS_WIN)
     m_comboBoxOSMemoryPriority.addItems({tr("Normal"), tr("Below normal"), tr("Medium"), tr("Low"), tr("Very low")});
     int OSMemoryPriorityIndex = 0;
-    switch (session->getOSMemoryPriority()) {
+    switch (pref->osMemoryPriority()) {
     default:
-    case BitTorrent::OSMemoryPriority::Normal:
+    case OSMemoryPriority::Normal:
         OSMemoryPriorityIndex = 0;
         break;
-    case BitTorrent::OSMemoryPriority::BelowNormal:
+    case OSMemoryPriority::BelowNormal:
         OSMemoryPriorityIndex = 1;
         break;
-    case BitTorrent::OSMemoryPriority::Medium:
+    case OSMemoryPriority::Medium:
         OSMemoryPriorityIndex = 2;
         break;
-    case BitTorrent::OSMemoryPriority::Low:
+    case OSMemoryPriority::Low:
         OSMemoryPriorityIndex = 3;
         break;
-    case BitTorrent::OSMemoryPriority::VeryLow:
+    case OSMemoryPriority::VeryLow:
         OSMemoryPriorityIndex = 4;
         break;
     }
@@ -372,13 +369,13 @@ void AdvancedSettings::loadAdvancedSettings()
     // Async IO threads
     m_spinBoxAsyncIOThreads.setMinimum(1);
     m_spinBoxAsyncIOThreads.setMaximum(1024);
-    m_spinBoxAsyncIOThreads.setValue(session->asyncIOThreads());
+    m_spinBoxAsyncIOThreads.setValue(pref->asyncIOThreadsCount());
     addRow(ASYNC_IO_THREADS, (tr("Asynchronous I/O threads") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#aio_threads", "(?)"))
             , &m_spinBoxAsyncIOThreads);
     // File pool size
     m_spinBoxFilePoolSize.setMinimum(1);
     m_spinBoxFilePoolSize.setMaximum(std::numeric_limits<int>::max());
-    m_spinBoxFilePoolSize.setValue(session->filePoolSize());
+    m_spinBoxFilePoolSize.setValue(pref->filePoolSize());
     addRow(FILE_POOL_SIZE, (tr("File pool size") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#file_pool_size", "(?)"))
         , &m_spinBoxFilePoolSize);
 
@@ -391,7 +388,7 @@ void AdvancedSettings::loadAdvancedSettings()
     // Allocate at most 128MiB out of the remaining 512MiB (see the cache part below)
     m_spinBoxCheckingMemUsage.setMaximum(128);
 #endif
-    m_spinBoxCheckingMemUsage.setValue(session->checkingMemUsage());
+    m_spinBoxCheckingMemUsage.setValue(pref->checkingMemUsage());
     m_spinBoxCheckingMemUsage.setSuffix(tr(" MiB"));
     addRow(CHECKING_MEM_USAGE, (tr("Outstanding memory when checking torrents") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#checking_mem_usage", "(?)"))
             , &m_spinBoxCheckingMemUsage);
@@ -405,83 +402,83 @@ void AdvancedSettings::loadAdvancedSettings()
     // allocate 1536MiB and leave 512MiB to the rest of program data in RAM
     m_spinBoxCache.setMaximum(1536);
 #endif
-    m_spinBoxCache.setValue(session->diskCacheSize());
+    m_spinBoxCache.setValue(pref->diskCacheSize());
     updateCacheSpinSuffix(m_spinBoxCache.value());
     addRow(DISK_CACHE, (tr("Disk cache") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#cache_size", "(?)"))
             , &m_spinBoxCache);
     // Disk cache expiry
     m_spinBoxCacheTTL.setMinimum(1);
     m_spinBoxCacheTTL.setMaximum(std::numeric_limits<int>::max());
-    m_spinBoxCacheTTL.setValue(session->diskCacheTTL());
+    m_spinBoxCacheTTL.setValue(pref->diskCacheTTL());
     m_spinBoxCacheTTL.setSuffix(tr(" s", " seconds"));
     addRow(DISK_CACHE_TTL, (tr("Disk cache expiry interval") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#cache_expiry", "(?)"))
             , &m_spinBoxCacheTTL);
     // Enable OS cache
-    m_checkBoxOsCache.setChecked(session->useOSCache());
+    m_checkBoxOsCache.setChecked(pref->useOSCache());
     addRow(OS_CACHE, (tr("Enable OS cache") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#disk_io_write_mode", "(?)"))
             , &m_checkBoxOsCache);
     // Coalesce reads & writes
-    m_checkBoxCoalesceRW.setChecked(session->isCoalesceReadWriteEnabled());
+    m_checkBoxCoalesceRW.setChecked(pref->isCoalesceReadWriteEnabled());
     addRow(COALESCE_RW, (tr("Coalesce reads & writes") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#coalesce_reads", "(?)"))
             , &m_checkBoxCoalesceRW);
 #if (LIBTORRENT_VERSION_NUM >= 10202)
     // Piece extent affinity
-    m_checkBoxPieceExtentAffinity.setChecked(session->usePieceExtentAffinity());
+    m_checkBoxPieceExtentAffinity.setChecked(pref->usePieceExtentAffinity());
     addRow(PIECE_EXTENT_AFFINITY, (tr("Use piece extent affinity") + ' ' + makeLink("https://libtorrent.org/single-page-ref.html#piece_extent_affinity", "(?)")), &m_checkBoxPieceExtentAffinity);
 #endif
     // Suggest mode
-    m_checkBoxSuggestMode.setChecked(session->isSuggestModeEnabled());
+    m_checkBoxSuggestMode.setChecked(pref->isSuggestModeEnabled());
     addRow(SUGGEST_MODE, (tr("Send upload piece suggestions") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#suggest_mode", "(?)"))
             , &m_checkBoxSuggestMode);
     // Send buffer watermark
     m_spinBoxSendBufferWatermark.setMinimum(1);
     m_spinBoxSendBufferWatermark.setMaximum(std::numeric_limits<int>::max());
     m_spinBoxSendBufferWatermark.setSuffix(tr(" KiB"));
-    m_spinBoxSendBufferWatermark.setValue(session->sendBufferWatermark());
+    m_spinBoxSendBufferWatermark.setValue(pref->sendBufferWatermark());
     addRow(SEND_BUF_WATERMARK, (tr("Send buffer watermark") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#send_buffer_watermark", "(?)"))
             , &m_spinBoxSendBufferWatermark);
     m_spinBoxSendBufferLowWatermark.setMinimum(1);
     m_spinBoxSendBufferLowWatermark.setMaximum(std::numeric_limits<int>::max());
     m_spinBoxSendBufferLowWatermark.setSuffix(tr(" KiB"));
-    m_spinBoxSendBufferLowWatermark.setValue(session->sendBufferLowWatermark());
+    m_spinBoxSendBufferLowWatermark.setValue(pref->sendBufferLowWatermark());
     addRow(SEND_BUF_LOW_WATERMARK, (tr("Send buffer low watermark") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#send_buffer_low_watermark", "(?)"))
             , &m_spinBoxSendBufferLowWatermark);
     m_spinBoxSendBufferWatermarkFactor.setMinimum(1);
     m_spinBoxSendBufferWatermarkFactor.setMaximum(std::numeric_limits<int>::max());
     m_spinBoxSendBufferWatermarkFactor.setSuffix(" %");
-    m_spinBoxSendBufferWatermarkFactor.setValue(session->sendBufferWatermarkFactor());
+    m_spinBoxSendBufferWatermarkFactor.setValue(pref->sendBufferWatermarkFactor());
     addRow(SEND_BUF_WATERMARK_FACTOR, (tr("Send buffer watermark factor") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#send_buffer_watermark_factor", "(?)"))
             , &m_spinBoxSendBufferWatermarkFactor);
     // Socket listen backlog size
     m_spinBoxSocketBacklogSize.setMinimum(1);
     m_spinBoxSocketBacklogSize.setMaximum(std::numeric_limits<int>::max());
-    m_spinBoxSocketBacklogSize.setValue(session->socketBacklogSize());
+    m_spinBoxSocketBacklogSize.setValue(pref->socketBacklogSize());
     addRow(SOCKET_BACKLOG_SIZE, (tr("Socket backlog size") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#listen_queue_size", "(?)"))
             , &m_spinBoxSocketBacklogSize);
     // Save resume data interval
     m_spinBoxSaveResumeDataInterval.setMinimum(0);
     m_spinBoxSaveResumeDataInterval.setMaximum(std::numeric_limits<int>::max());
-    m_spinBoxSaveResumeDataInterval.setValue(session->saveResumeDataInterval());
+    m_spinBoxSaveResumeDataInterval.setValue(pref->saveResumeDataInterval());
     updateSaveResumeDataIntervalSuffix(m_spinBoxSaveResumeDataInterval.value());
     addRow(SAVE_RESUME_DATA_INTERVAL, tr("Save resume data interval", "How often the fastresume file is saved."), &m_spinBoxSaveResumeDataInterval);
     // Outgoing port Min
     m_spinBoxOutgoingPortsMin.setMinimum(0);
     m_spinBoxOutgoingPortsMin.setMaximum(65535);
-    m_spinBoxOutgoingPortsMin.setValue(session->outgoingPortsMin());
+    m_spinBoxOutgoingPortsMin.setValue(pref->minOutgoingPort());
     addRow(OUTGOING_PORT_MIN, tr("Outgoing ports (Min) [0: Disabled]"), &m_spinBoxOutgoingPortsMin);
     // Outgoing port Min
     m_spinBoxOutgoingPortsMax.setMinimum(0);
     m_spinBoxOutgoingPortsMax.setMaximum(65535);
-    m_spinBoxOutgoingPortsMax.setValue(session->outgoingPortsMax());
+    m_spinBoxOutgoingPortsMax.setValue(pref->maxOutgoingPort());
     addRow(OUTGOING_PORT_MAX, tr("Outgoing ports (Max) [0: Disabled]"), &m_spinBoxOutgoingPortsMax);
     // uTP-TCP mixed mode
     m_comboBoxUtpMixedMode.addItems({tr("Prefer TCP"), tr("Peer proportional (throttles TCP)")});
-    m_comboBoxUtpMixedMode.setCurrentIndex(static_cast<int>(session->utpMixedMode()));
+    m_comboBoxUtpMixedMode.setCurrentIndex(static_cast<int>(pref->utpMixedMode()));
     addRow(UTP_MIX_MODE, (tr("%1-TCP mixed mode algorithm", "uTP-TCP mixed mode algorithm").arg(C_UTP)
             + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#mixed_mode_algorithm", "(?)"))
             , &m_comboBoxUtpMixedMode);
     // multiple connections per IP
-    m_checkBoxMultiConnectionsPerIp.setChecked(session->multiConnectionsPerIpEnabled());
+    m_checkBoxMultiConnectionsPerIp.setChecked(pref->isMultiConnectionsPerIPEnabled());
     addRow(MULTI_CONNECTIONS_PER_IP, tr("Allow multiple connections from the same IP address"), &m_checkBoxMultiConnectionsPerIp);
     // Recheck completed torrents
     m_checkBoxRecheckCompleted.setChecked(pref->recheckTorrentsOnCompletion());
@@ -489,7 +486,7 @@ void AdvancedSettings::loadAdvancedSettings()
     // Transfer list refresh interval
     m_spinBoxListRefresh.setMinimum(30);
     m_spinBoxListRefresh.setMaximum(99999);
-    m_spinBoxListRefresh.setValue(session->refreshInterval());
+    m_spinBoxListRefresh.setValue(pref->refreshInterval());
     m_spinBoxListRefresh.setSuffix(tr(" ms", " milliseconds"));
     addRow(LIST_REFRESH, tr("Transfer list refresh interval"), &m_spinBoxListRefresh);
     // Resolve Peer countries
@@ -499,12 +496,12 @@ void AdvancedSettings::loadAdvancedSettings()
     m_checkBoxResolveHosts.setChecked(pref->resolvePeerHostNames());
     addRow(RESOLVE_HOSTS, tr("Resolve peer host names"), &m_checkBoxResolveHosts);
     // Super seeding
-    m_checkBoxSuperSeeding.setChecked(session->isSuperSeedingEnabled());
+    m_checkBoxSuperSeeding.setChecked(pref->isSuperSeedingEnabled());
     addRow(SUPER_SEEDING, (tr("Strict super seeding") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#strict_super_seeding", "(?)"))
             , &m_checkBoxSuperSeeding);
     // Network interface
     m_comboBoxInterface.addItem(tr("Any interface", "i.e. Any network interface"));
-    const QString currentInterface = session->networkInterface();
+    const QString currentInterface = pref->networkInterface();
     bool interfaceExists = currentInterface.isEmpty();
     int i = 1;
     for (const QNetworkInterface &iface : asConst(QNetworkInterface::allInterfaces())) {
@@ -517,7 +514,7 @@ void AdvancedSettings::loadAdvancedSettings()
     }
     // Saved interface does not exist, show it anyway
     if (!interfaceExists) {
-        m_comboBoxInterface.addItem(session->networkInterfaceName(), currentInterface);
+        m_comboBoxInterface.addItem(pref->networkInterfaceName(), currentInterface);
         m_comboBoxInterface.setCurrentIndex(i);
     }
     addRow(NETWORK_IFACE, tr("Network Interface (requires restart)"), &m_comboBoxInterface);
@@ -525,10 +522,10 @@ void AdvancedSettings::loadAdvancedSettings()
     updateInterfaceAddressCombo();
     addRow(NETWORK_IFACE_ADDRESS, tr("Optional IP Address to bind to (requires restart)"), &m_comboBoxInterfaceAddress);
     // Announce IP
-    m_lineEditAnnounceIP.setText(session->announceIP());
+    m_lineEditAnnounceIP.setText(pref->announceIP());
     addRow(ANNOUNCE_IP, tr("IP Address to report to trackers (requires restart)"), &m_lineEditAnnounceIP);
     // stop tracker timeout
-    m_spinBoxStopTrackerTimeout.setValue(session->stopTrackerTimeout());
+    m_spinBoxStopTrackerTimeout.setValue(pref->stopTrackerTimeout());
     m_spinBoxStopTrackerTimeout.setSuffix(tr(" s", " seconds"));
     addRow(STOP_TRACKER_TIMEOUT, (tr("Stop tracker timeout") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#stop_tracker_timeout", "(?)"))
            , &m_spinBoxStopTrackerTimeout);
@@ -550,7 +547,7 @@ void AdvancedSettings::loadAdvancedSettings()
     m_checkBoxSpeedWidgetEnabled.setChecked(pref->isSpeedWidgetEnabled());
     addRow(ENABLE_SPEED_WIDGET, tr("Enable speed graphs"), &m_checkBoxSpeedWidgetEnabled);
     // Tracker State
-    m_checkBoxTrackerStatus.setChecked(session->isTrackerEnabled());
+    m_checkBoxTrackerStatus.setChecked(pref->isTrackerEnabled());
     addRow(TRACKER_STATUS, tr("Enable embedded tracker"), &m_checkBoxTrackerStatus);
     // Tracker port
     m_spinBoxTrackerPort.setMinimum(1);
@@ -559,12 +556,12 @@ void AdvancedSettings::loadAdvancedSettings()
     addRow(TRACKER_PORT, tr("Embedded tracker port"), &m_spinBoxTrackerPort);
     // Choking algorithm
     m_comboBoxChokingAlgorithm.addItems({tr("Fixed slots"), tr("Upload rate based")});
-    m_comboBoxChokingAlgorithm.setCurrentIndex(static_cast<int>(session->chokingAlgorithm()));
+    m_comboBoxChokingAlgorithm.setCurrentIndex(static_cast<int>(pref->chokingAlgorithm()));
     addRow(CHOKING_ALGORITHM, (tr("Upload slots behavior") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#choking_algorithm", "(?)"))
             , &m_comboBoxChokingAlgorithm);
     // Seed choking algorithm
     m_comboBoxSeedChokingAlgorithm.addItems({tr("Round-robin"), tr("Fastest upload"), tr("Anti-leech")});
-    m_comboBoxSeedChokingAlgorithm.setCurrentIndex(static_cast<int>(session->seedChokingAlgorithm()));
+    m_comboBoxSeedChokingAlgorithm.setCurrentIndex(static_cast<int>(pref->seedChokingAlgorithm()));
     addRow(SEED_CHOKING_ALGORITHM, (tr("Upload choking algorithm") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#seed_choking_algorithm", "(?)"))
             , &m_comboBoxSeedChokingAlgorithm);
 
@@ -577,11 +574,11 @@ void AdvancedSettings::loadAdvancedSettings()
     addRow(CONFIRM_REMOVE_ALL_TAGS, tr("Confirm removal of all tags"), &m_checkBoxConfirmRemoveAllTags);
 
     // Announce to all trackers in a tier
-    m_checkBoxAnnounceAllTrackers.setChecked(session->announceToAllTrackers());
+    m_checkBoxAnnounceAllTrackers.setChecked(pref->announceToAllTrackers());
     addRow(ANNOUNCE_ALL_TRACKERS, tr("Always announce to all trackers in a tier"), &m_checkBoxAnnounceAllTrackers);
 
     // Announce to all tiers
-    m_checkBoxAnnounceAllTiers.setChecked(session->announceToAllTiers());
+    m_checkBoxAnnounceAllTiers.setChecked(pref->announceToAllTiers());
     addRow(ANNOUNCE_ALL_TIERS, tr("Always announce to all tiers"), &m_checkBoxAnnounceAllTiers);
 }
 

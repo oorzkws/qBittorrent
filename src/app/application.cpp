@@ -106,7 +106,7 @@ namespace
 Application::Application(int &argc, char **argv)
     : BaseApplication(argc, argv)
     , m_running(false)
-    , m_shutdownAct(ShutdownDialogAction::Exit)
+    , m_shutdownAct(ShutdownAction::Exit)
     , m_commandLineArgs(parseCommandLine(this->arguments()))
 {
     qRegisterMetaType<Log::Msg>("Log::Msg");
@@ -202,6 +202,8 @@ void Application::configure()
     else {
         delete m_fileLogger;
     }
+
+    applyOSMemoryPriority(pref->osMemoryPriority());
 }
 
 void Application::processMessage(const QString &message)
@@ -343,17 +345,17 @@ void Application::allTorrentsFinished()
     bool haveAction = isExit || isShutdown || isSuspend || isHibernate;
     if (!haveAction) return;
 
-    ShutdownDialogAction action = ShutdownDialogAction::Exit;
+    ShutdownAction action = ShutdownAction::Exit;
     if (isSuspend)
-        action = ShutdownDialogAction::Suspend;
+        action = ShutdownAction::Suspend;
     else if (isHibernate)
-        action = ShutdownDialogAction::Hibernate;
+        action = ShutdownAction::Hibernate;
     else if (isShutdown)
-        action = ShutdownDialogAction::Shutdown;
+        action = ShutdownAction::Shutdown;
 
 #ifndef DISABLE_GUI
     // ask confirm
-    if ((action == ShutdownDialogAction::Exit) && (pref->dontConfirmAutoExit())) {
+    if ((action == ShutdownAction::Exit) && (pref->dontConfirmAutoExit())) {
         // do nothing & skip confirm
     }
     else {
@@ -362,7 +364,7 @@ void Application::allTorrentsFinished()
 #endif // DISABLE_GUI
 
     // Actually shut down
-    if (action != ShutdownDialogAction::Exit) {
+    if (action != ShutdownAction::Exit) {
         qDebug("Preparing for auto-shutdown because all downloads are complete!");
         // Disabling it for next time
         pref->setShutdownWhenDownloadsComplete(false);
@@ -589,7 +591,8 @@ void Application::initializeTranslation()
 #endif
 }
 
-#if (!defined(DISABLE_GUI) && defined(Q_OS_WIN))
+#ifdef Q_OS_WIN
+#ifndef DISABLE_GUI
 void Application::shutdownCleanup(QSessionManager &manager)
 {
     Q_UNUSED(manager);
@@ -617,6 +620,51 @@ void Application::shutdownCleanup(QSessionManager &manager)
 }
 #endif
 
+void Application::applyOSMemoryPriority(const OSMemoryPriority osMemoryPriority) const
+{
+    using SETPROCESSINFORMATION = BOOL (WINAPI *)(HANDLE, PROCESS_INFORMATION_CLASS, LPVOID, DWORD);
+    const auto setProcessInformation = Utils::Misc::loadWinAPI<SETPROCESSINFORMATION>("Kernel32.dll", "SetProcessInformation");
+    if (!setProcessInformation)  // only available on Windows >= 8
+        return;
+
+#if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
+    // this dummy struct is required to compile successfully when targeting older Windows version
+    struct MEMORY_PRIORITY_INFORMATION
+    {
+        ULONG MemoryPriority;
+    };
+
+#define MEMORY_PRIORITY_LOWEST 0
+#define MEMORY_PRIORITY_VERY_LOW 1
+#define MEMORY_PRIORITY_LOW 2
+#define MEMORY_PRIORITY_MEDIUM 3
+#define MEMORY_PRIORITY_BELOW_NORMAL 4
+#define MEMORY_PRIORITY_NORMAL 5
+#endif
+
+    MEMORY_PRIORITY_INFORMATION prioInfo {};
+    switch (osMemoryPriority) {
+    case OSMemoryPriority::Normal:
+    default:
+        prioInfo.MemoryPriority = MEMORY_PRIORITY_NORMAL;
+        break;
+    case OSMemoryPriority::BelowNormal:
+        prioInfo.MemoryPriority = MEMORY_PRIORITY_BELOW_NORMAL;
+        break;
+    case OSMemoryPriority::Medium:
+        prioInfo.MemoryPriority = MEMORY_PRIORITY_MEDIUM;
+        break;
+    case OSMemoryPriority::Low:
+        prioInfo.MemoryPriority = MEMORY_PRIORITY_LOW;
+        break;
+    case OSMemoryPriority::VeryLow:
+        prioInfo.MemoryPriority = MEMORY_PRIORITY_VERY_LOW;
+        break;
+    }
+    setProcessInformation(::GetCurrentProcess(), ProcessMemoryPriority, &prioInfo, sizeof(prioInfo));
+}
+#endif
+
 void Application::cleanup()
 {
     // cleanup() can be called multiple times during shutdown. We only need it once.
@@ -634,7 +682,7 @@ void Application::cleanup()
 
 #ifdef Q_OS_WIN
         ::ShutdownBlockReasonCreate(reinterpret_cast<HWND>(m_window->effectiveWinId())
-            , tr("Saving torrent progress...").toStdWString().c_str());
+                                    , tr("Saving torrent progress...").toStdWString().c_str());
 #endif // Q_OS_WIN
 
         // Do manual cleanup in MainWindow to force widgets
@@ -681,7 +729,7 @@ void Application::cleanup()
 
     Profile::freeInstance();
 
-    if (m_shutdownAct != ShutdownDialogAction::Exit) {
+    if (m_shutdownAct != ShutdownAction::Exit) {
         qDebug() << "Sending computer shutdown/suspend/hibernate signal...";
         Utils::Misc::shutdownComputer(m_shutdownAct);
     }

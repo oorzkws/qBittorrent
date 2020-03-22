@@ -32,7 +32,7 @@
 #include <QDialog>
 #include <QTimer>
 
-#include "base/types.h"
+#include "base/basedefs.h"
 
 namespace Ui
 {
@@ -44,10 +44,10 @@ class ShutdownConfirmDialog : public QDialog
     Q_OBJECT
 
 public:
-    ShutdownConfirmDialog(QWidget *parent, const ShutdownDialogAction &action);
+    ShutdownConfirmDialog(QWidget *parent, const ShutdownAction &action);
     ~ShutdownConfirmDialog();
 
-    static bool askForConfirmation(QWidget *parent, const ShutdownDialogAction &action);
+    static bool askForConfirmation(QWidget *parent, const ShutdownAction &action);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -65,7 +65,7 @@ private:
     Ui::ShutdownConfirmDialog *m_ui;
     QTimer m_timer;
     int m_timeout;
-    ShutdownDialogAction m_action;
+    ShutdownAction m_action;
     QString m_msg;
 };
 
