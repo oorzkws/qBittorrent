@@ -309,6 +309,34 @@ namespace
         return {};
     }
 #endif
+
+    void handleCompleteFiles(const lt::torrent_handle &nativeHandle, const QString &savePath)
+    {
+        const QDir saveDir {savePath};
+
+        const lt::file_storage &fileStorage = nativeHandle.torrent_file()->files();
+        const lt::aux::vector<lt::download_priority_t, lt::file_index_t> filePriorities {nativeHandle.get_file_priorities()};
+        for (const lt::file_index_t fileIndex : fileStorage.file_range()) {
+            // ignore files that have priority 0
+            if ((filePriorities.end_index() > fileIndex) && (filePriorities[fileIndex] == lt::dont_download))
+                continue;
+
+            // ignore pad files
+            if (fileStorage.pad_file_at(fileIndex)) continue;
+
+            const QString filePath = QString::fromStdString(fileStorage.file_path(fileIndex));
+            if (filePath.endsWith(QB_EXT)) {
+                const QString completeFilePath = filePath.left(filePath.size() - QB_EXT.size());
+                QFile completeFile {saveDir.absoluteFilePath(completeFilePath)};
+                if (completeFile.exists()) {
+                    QFile incompleteFile {saveDir.absoluteFilePath(filePath)};
+                    if (incompleteFile.exists())
+                        incompleteFile.remove();
+                    completeFile.rename(incompleteFile.fileName());
+                }
+            }
+        }
+    }
 }
 
 // Session
@@ -3836,9 +3864,13 @@ void Session::moveTorrentStorage(const MoveStorageJob &job) const
     const QString torrentName = (torrent ? torrent->name() : QString {infoHash});
     LogMsg(tr("Moving \"%1\" to \"%2\"...").arg(torrentName, job.path));
 
-    job.torrentHandle.move_storage(job.path.toUtf8().constData()
-                            , ((job.mode == MoveStorageMode::Overwrite)
-                            ? lt::move_flags_t::always_replace_files : lt::move_flags_t::dont_replace));
+    if (job.mode == MoveStorageMode::Overwrite) {
+        job.torrentHandle.move_storage(job.path.toUtf8().constData(), lt::move_flags_t::always_replace_files);
+    }
+    else {
+        handleCompleteFiles(job.torrentHandle, job.path);
+        job.torrentHandle.move_storage(job.path.toUtf8().constData(), lt::move_flags_t::dont_replace);
+    }
 }
 
 void Session::handleMoveTorrentStorageJobFinished()
