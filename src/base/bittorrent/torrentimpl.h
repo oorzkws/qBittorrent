@@ -76,7 +76,7 @@ namespace BitTorrent
         lt::operation_t operation;
     };
 
-    class TorrentImpl final : public QObject, public Torrent
+    class TorrentImpl final : public Torrent
     {
         Q_DISABLE_COPY_MOVE(TorrentImpl)
         Q_DECLARE_TR_FUNCTIONS(BitTorrent::TorrentImpl)
@@ -132,6 +132,7 @@ namespace BitTorrent
         Path actualFilePath(int index) const override;
         qlonglong fileSize(int index) const override;
         PathList filePaths() const override;
+        DownloadPriority filePriority(int index) const override;
         QVector<DownloadPriority> filePriorities() const override;
 
         TorrentInfo info() const override;
@@ -207,6 +208,7 @@ namespace BitTorrent
         void forceDHTAnnounce() override;
         void forceRecheck() override;
         void renameFile(int index, const Path &path) override;
+        void setFilePriority(int index, DownloadPriority priority) override;
         void prioritizeFiles(const QVector<DownloadPriority> &priorities) override;
         void setRatioLimit(qreal limit) override;
         void setSeedingTimeLimit(int limit) override;
@@ -324,5 +326,6 @@ namespace BitTorrent
         lt::add_torrent_params m_ltAddTorrentParams;
 
         mutable QBitArray m_pieces;
+        mutable QVector<int> m_pieceAvailability;
     };
 }

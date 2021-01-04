@@ -119,10 +119,7 @@ void PropListDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, 
     const int previousPriority = index.data(TorrentContentModel::UnderlyingDataRole).toInt();
 
     if (newPriority != previousPriority)
-    {
         model->setData(index, newPriority);
-        emit filteredFilesChanged();
-    }
 }
 
 void PropListDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &) const

@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
+ * Copyright (C) 2022  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,44 +28,43 @@
 
 #pragma once
 
-#include <QStyledItemDelegate>
+#include <QObject>
 
-#include "gui/progressbarpainter.h"
+#include "abstractfilestorage.h"
+#include "downloadpriority.h"
 
-class QAbstractItemModel;
-class QModelIndex;
-class QStyleOptionViewItem;
-
-class PropertiesWidget;
-
-// Defines for properties list columns
-enum PropColumn
+namespace BitTorrent
 {
-    NAME,
-    PCSIZE,
-    PROGRESS,
-    PRIORITY,
-    REMAINING,
-    AVAILABILITY
-};
+    class TorrentContentHandler
+            : public QObject
+            , public AbstractFileStorage
+    {
+        Q_OBJECT
+        Q_DISABLE_COPY(TorrentContentHandler)
 
-class PropListDelegate final : public QStyledItemDelegate
-{
-    Q_OBJECT
-    Q_DISABLE_COPY_MOVE(PropListDelegate)
+    public:
+        using QObject::QObject;
 
-public:
-    explicit PropListDelegate(PropertiesWidget *properties);
+        virtual bool hasMetadata() const = 0;
 
-    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+        virtual QVector<BitTorrent::DownloadPriority> filePriorities() const = 0;
+        virtual DownloadPriority filePriority(int index) const = 0;
+        virtual void setFilePriority(int index, DownloadPriority priority) = 0;
 
-public slots:
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
-    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+        virtual QVector<qreal> filesProgress() const = 0;
 
-private:
-    PropertiesWidget *m_properties;
-    ProgressBarPainter m_progressBarPainter;
-};
+        /**
+         * @brief fraction of file pieces that are available at least from one peer
+         *
+         * This is not the same as torrent availability, it is just a fraction of pieces
+         * that can be downloaded right now. It varies between 0 to 1.
+         */
+        virtual QVector<qreal> availableFileFractions() const = 0;
+
+    signals:
+        void metadataReceived();
+        void filePriorityChanged(int index, DownloadPriority priority);
+        void fileRenamed(int index, const Path &path);
+        void stateUpdated();
+    };
+}

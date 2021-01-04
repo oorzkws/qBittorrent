@@ -30,70 +30,58 @@
 
 #include <QVariant>
 
+#include "base/path.h"
 #include "base/unicodestrings.h"
 #include "base/utils/misc.h"
 #include "base/utils/string.h"
 #include "torrentcontentmodelfolder.h"
 
-TorrentContentModelItem::TorrentContentModelItem(TorrentContentModelFolder *parent)
-    : m_parentItem(parent)
-    , m_size(0)
-    , m_remaining(0)
-    , m_priority(BitTorrent::DownloadPriority::Normal)
-    , m_progress(0)
-    , m_availability(-1.)
+TorrentContentModelItem::~TorrentContentModelItem()
 {
-}
-
-TorrentContentModelItem::~TorrentContentModelItem() = default;
-
-bool TorrentContentModelItem::isRootItem() const
-{
-    return !m_parentItem;
+    if (m_parentItem)
+        m_parentItem->removeChild(this);
 }
 
 QString TorrentContentModelItem::name() const
 {
-    Q_ASSERT(!isRootItem());
     return m_name;
+}
+
+Path TorrentContentModelItem::path() const
+{
+    if (m_parentItem)
+        return m_parentItem->path() / Path(m_name);
+
+    return Path(name());
 }
 
 void TorrentContentModelItem::setName(const QString &name)
 {
-    Q_ASSERT(!isRootItem());
     m_name = name;
 }
 
 qulonglong TorrentContentModelItem::size() const
 {
-    Q_ASSERT(!isRootItem());
-
     return m_size;
 }
 
 qreal TorrentContentModelItem::progress() const
 {
-    Q_ASSERT(!isRootItem());
-
     return (m_size > 0) ? m_progress : 1;
 }
 
 qulonglong TorrentContentModelItem::remaining() const
 {
-    Q_ASSERT(!isRootItem());
     return (m_priority == BitTorrent::DownloadPriority::Ignored) ? 0 : m_remaining;
 }
 
 qreal TorrentContentModelItem::availability() const
 {
-    Q_ASSERT(!isRootItem());
-
     return (m_size > 0) ? m_availability : 0;
 }
 
 BitTorrent::DownloadPriority TorrentContentModelItem::priority() const
 {
-    Q_ASSERT(!isRootItem());
     return m_priority;
 }
 
@@ -104,13 +92,11 @@ int TorrentContentModelItem::columnCount() const
 
 QString TorrentContentModelItem::displayData(const int column) const
 {
-    if (isRootItem())
-        return m_itemData.value(column);
-
     switch (column)
     {
     case COL_NAME:
         return m_name;
+
     case COL_PRIO:
         switch (m_priority)
         {
@@ -125,25 +111,29 @@ QString TorrentContentModelItem::displayData(const int column) const
         default:
             return tr("Normal", "Normal (priority)");
         }
+
     case COL_PROGRESS:
         return (m_progress >= 1)
                ? QString::fromLatin1("100%")
                : (Utils::String::fromDouble((m_progress * 100), 1) + QLatin1Char('%'));
+
     case COL_SIZE:
         return Utils::Misc::friendlyUnit(m_size);
+
     case COL_REMAINING:
         return Utils::Misc::friendlyUnit(remaining());
-    case COL_AVAILABILITY:
-        {
-            const qreal avail = availability();
-            if (avail < 0)
-                return tr("N/A");
 
+    case COL_AVAILABILITY:
+        if (const qreal avail = availability(); avail >= 0)
+        {
             const QString value = (avail >= 1)
-                                  ? QString::fromLatin1("100")
-                                  : Utils::String::fromDouble((avail * 100), 1);
+                    ? QString::fromLatin1("100")
+                    : Utils::String::fromDouble((avail * 100), 1);
             return (value + C_THIN_SPACE + QLatin1Char('%'));
         }
+
+        return tr("N/A");
+
     default:
         Q_ASSERT(false);
         return {};
@@ -152,9 +142,6 @@ QString TorrentContentModelItem::displayData(const int column) const
 
 QVariant TorrentContentModelItem::underlyingData(const int column) const
 {
-    if (isRootItem())
-        return m_itemData.value(column);
-
     switch (column)
     {
     case COL_NAME:
@@ -179,7 +166,7 @@ int TorrentContentModelItem::row() const
 {
     if (m_parentItem)
         return m_parentItem->children().indexOf(const_cast<TorrentContentModelItem *>(this));
-    return 0;
+    return -1;
 }
 
 TorrentContentModelFolder *TorrentContentModelItem::parent() const

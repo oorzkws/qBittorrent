@@ -31,6 +31,7 @@ HEADERS += \
     $$PWD/bittorrent/speedmonitor.h \
     $$PWD/bittorrent/statistics.h \
     $$PWD/bittorrent/torrent.h \
+    $$PWD/bittorrent/torrentcontenthandler.h \
     $$PWD/bittorrent/torrentcontentlayout.h \
     $$PWD/bittorrent/torrentcreatorthread.h \
     $$PWD/bittorrent/torrentimpl.h \
@@ -122,7 +123,12 @@ SOURCES += \
     $$PWD/bittorrent/speedmonitor.cpp \
     $$PWD/bittorrent/statistics.cpp \
     $$PWD/bittorrent/torrent.cpp \
+<<<<<<< HEAD
     $$PWD/bittorrent/torrentcontentlayout.cpp \
+||||||| parent of a726bb15f (Redesign torrent content model)
+=======
+    $$PWD/bittorrent/torrentcontenthandler.cpp \
+>>>>>>> a726bb15f (Redesign torrent content model)
     $$PWD/bittorrent/torrentcreatorthread.cpp \
     $$PWD/bittorrent/torrentimpl.cpp \
     $$PWD/bittorrent/torrentinfo.cpp \

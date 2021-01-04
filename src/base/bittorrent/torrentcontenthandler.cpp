@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
+ * Copyright (C) 2022  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,46 +26,4 @@
  * exception statement from your version.
  */
 
-#pragma once
-
-#include <QStyledItemDelegate>
-
-#include "gui/progressbarpainter.h"
-
-class QAbstractItemModel;
-class QModelIndex;
-class QStyleOptionViewItem;
-
-class PropertiesWidget;
-
-// Defines for properties list columns
-enum PropColumn
-{
-    NAME,
-    PCSIZE,
-    PROGRESS,
-    PRIORITY,
-    REMAINING,
-    AVAILABILITY
-};
-
-class PropListDelegate final : public QStyledItemDelegate
-{
-    Q_OBJECT
-    Q_DISABLE_COPY_MOVE(PropListDelegate)
-
-public:
-    explicit PropListDelegate(PropertiesWidget *properties);
-
-    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-public slots:
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
-    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-private:
-    PropertiesWidget *m_properties;
-    ProgressBarPainter m_progressBarPainter;
-};
+#include "torrentcontenthandler.h"

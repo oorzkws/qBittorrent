@@ -28,10 +28,13 @@
 
 #pragma once
 
+#include <type_traits>
+
 #include <QCoreApplication>
 #include <QVector>
 
 #include "base/bittorrent/downloadpriority.h"
+#include "base/pathfwd.h"
 
 class QVariant;
 
@@ -40,6 +43,8 @@ class TorrentContentModelFolder;
 class TorrentContentModelItem
 {
     Q_DECLARE_TR_FUNCTIONS(TorrentContentModelItem)
+
+    friend class TorrentContentModelFolder;
 
 public:
     enum TreeItemColumns
@@ -59,14 +64,14 @@ public:
         FolderType
     };
 
-    explicit TorrentContentModelItem(TorrentContentModelFolder *parent);
+    TorrentContentModelItem() = default;
     virtual ~TorrentContentModelItem();
 
-    bool isRootItem() const;
     TorrentContentModelFolder *parent() const;
     virtual ItemType itemType() const = 0;
 
     QString name() const;
+    Path path() const;
     void setName(const QString &name);
 
     qulonglong size() const;
@@ -76,7 +81,7 @@ public:
     qreal availability() const;
 
     BitTorrent::DownloadPriority priority() const;
-    virtual void setPriority(BitTorrent::DownloadPriority newPriority, bool updateParent = true) = 0;
+    virtual void setPriority(BitTorrent::DownloadPriority newPriority) = 0;
 
     int columnCount() const;
     QString displayData(int column) const;
@@ -84,14 +89,11 @@ public:
     int row() const;
 
 protected:
-    TorrentContentModelFolder *m_parentItem;
-    // Root item members
-    QVector<QString> m_itemData;
-    // Non-root item members
+    TorrentContentModelFolder *m_parentItem = nullptr;
     QString m_name;
-    qulonglong m_size;
-    qulonglong m_remaining;
-    BitTorrent::DownloadPriority m_priority;
-    qreal m_progress;
-    qreal m_availability;
+    qlonglong m_size = 0;
+    qulonglong m_remaining = 0;
+    BitTorrent::DownloadPriority m_priority = BitTorrent::DownloadPriority::Normal;
+    qreal m_progress = 0;
+    qreal m_availability = -1;
 };

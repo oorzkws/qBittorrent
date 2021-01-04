@@ -28,14 +28,12 @@
 
 #include "torrentcontentfiltermodel.h"
 
+#include "base/path.h"
 #include "torrentcontentmodel.h"
 
 TorrentContentFilterModel::TorrentContentFilterModel(QObject *parent)
-    : QSortFilterProxyModel(parent)
-    , m_model(new TorrentContentModel(this))
+    : QSortFilterProxyModel {parent}
 {
-    connect(m_model, &TorrentContentModel::filteredFilesChanged, this, &TorrentContentFilterModel::filteredFilesChanged);
-    setSourceModel(m_model);
     // Filter settings
     setFilterKeyColumn(TorrentContentModelItem::COL_NAME);
     setFilterRole(TorrentContentModel::UnderlyingDataRole);
@@ -44,26 +42,40 @@ TorrentContentFilterModel::TorrentContentFilterModel(QObject *parent)
     setSortRole(TorrentContentModel::UnderlyingDataRole);
 }
 
-TorrentContentModel *TorrentContentFilterModel::model() const
+TorrentContentModel *TorrentContentFilterModel::sourceModel() const
 {
-     return m_model;
+    return qobject_cast<TorrentContentModel *>(QSortFilterProxyModel::sourceModel());
 }
 
-TorrentContentModelItem::ItemType TorrentContentFilterModel::itemType(const QModelIndex &index) const
+void TorrentContentFilterModel::setSourceModel(QAbstractItemModel *sourceModel)
 {
-    return m_model->itemType(mapToSource(index));
+    auto contentModel = qobject_cast<TorrentContentModel *>(sourceModel);
+    Q_ASSERT(contentModel);
+
+    disconnect(this->sourceModel());
+    QSortFilterProxyModel::setSourceModel(sourceModel);
+}
+
+TorrentContentModelItem::ItemType TorrentContentFilterModel::getItemType(const QModelIndex &index) const
+{
+    return sourceModel()->getItemType(mapToSource(index));
 }
 
 int TorrentContentFilterModel::getFileIndex(const QModelIndex &index) const
 {
-    return m_model->getFileIndex(mapToSource(index));
+    return sourceModel()->getFileIndex(mapToSource(index));
+}
+
+Path TorrentContentFilterModel::getPath(const QModelIndex &index) const
+{
+    return sourceModel()->getPath(mapToSource(index));
 }
 
 QModelIndex TorrentContentFilterModel::parent(const QModelIndex &child) const
 {
     if (!child.isValid()) return {};
 
-    QModelIndex sourceParent = m_model->parent(mapToSource(child));
+    QModelIndex sourceParent = sourceModel()->parent(mapToSource(child));
     if (!sourceParent.isValid()) return {};
 
     return mapFromSource(sourceParent);
@@ -71,10 +83,10 @@ QModelIndex TorrentContentFilterModel::parent(const QModelIndex &child) const
 
 bool TorrentContentFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
 {
-    if (m_model->itemType(m_model->index(sourceRow, 0, sourceParent)) == TorrentContentModelItem::FolderType)
+    if (sourceModel()->getItemType(sourceModel()->index(sourceRow, 0, sourceParent)) == TorrentContentModelItem::FolderType)
     {
         // accept folders if they have at least one filtered item
-        return hasFiltered(m_model->index(sourceRow, 0, sourceParent));
+        return hasFiltered(sourceModel()->index(sourceRow, 0, sourceParent));
     }
 
     return QSortFilterProxyModel::filterAcceptsRow(sourceRow, sourceParent);
@@ -85,9 +97,9 @@ bool TorrentContentFilterModel::lessThan(const QModelIndex &left, const QModelIn
     switch (sortColumn())
     {
     case TorrentContentModelItem::COL_NAME:
-    {
-            const TorrentContentModelItem::ItemType leftType = m_model->itemType(m_model->index(left.row(), 0, left.parent()));
-            const TorrentContentModelItem::ItemType rightType = m_model->itemType(m_model->index(right.row(), 0, right.parent()));
+        {
+            const TorrentContentModelItem::ItemType leftType = sourceModel()->getItemType(sourceModel()->index(left.row(), 0, left.parent()));
+            const TorrentContentModelItem::ItemType rightType = sourceModel()->getItemType(sourceModel()->index(right.row(), 0, right.parent()));
 
             if (leftType == rightType)
             {
@@ -130,10 +142,10 @@ bool TorrentContentFilterModel::hasFiltered(const QModelIndex &folder) const
     QString name = folder.data().toString();
     if (name.contains(filterRegularExpression()))
         return true;
-    for (int child = 0; child < m_model->rowCount(folder); ++child)
+    for (int child = 0; child < sourceModel()->rowCount(folder); ++child)
     {
-        QModelIndex childIndex = m_model->index(child, 0, folder);
-        if (m_model->hasChildren(childIndex))
+        QModelIndex childIndex = sourceModel()->index(child, 0, folder);
+        if (sourceModel()->hasChildren(childIndex))
         {
             if (hasFiltered(childIndex))
                 return true;

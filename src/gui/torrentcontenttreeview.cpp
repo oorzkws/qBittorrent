@@ -42,25 +42,12 @@
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/torrent.h"
 #include "base/bittorrent/torrentinfo.h"
-#include "base/exceptions.h"
 #include "base/global.h"
 #include "base/path.h"
 #include "base/utils/fs.h"
 #include "autoexpandabledialog.h"
-#include "raisedmessagebox.h"
 #include "torrentcontentfiltermodel.h"
 #include "torrentcontentmodelitem.h"
-
-namespace
-{
-    Path getFullPath(const QModelIndex &idx)
-    {
-        Path path;
-        for (QModelIndex i = idx; i.isValid(); i = i.parent())
-            path = Path(i.data().toString()) / path;
-        return path;
-    }
-}
 
 TorrentContentTreeView::TorrentContentTreeView(QWidget *parent)
     : QTreeView(parent)
@@ -108,7 +95,7 @@ void TorrentContentTreeView::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void TorrentContentTreeView::renameSelectedFile(BitTorrent::AbstractFileStorage &fileStorage)
+void TorrentContentTreeView::renameSelectedFile()
 {
     const QModelIndexList selectedIndexes = selectionModel()->selectedRows(0);
     if (selectedIndexes.size() != 1) return;
@@ -116,38 +103,20 @@ void TorrentContentTreeView::renameSelectedFile(BitTorrent::AbstractFileStorage 
     const QPersistentModelIndex modelIndex = selectedIndexes.first();
     if (!modelIndex.isValid()) return;
 
-    auto model = dynamic_cast<TorrentContentFilterModel *>(TorrentContentTreeView::model());
+    auto model = qobject_cast<TorrentContentFilterModel *>(this->model());
     if (!model) return;
 
-    const bool isFile = (model->itemType(modelIndex) == TorrentContentModelItem::FileType);
+    const bool isFile = (model->getItemType(modelIndex) == TorrentContentModelItem::FileType);
 
     // Ask for new name
     bool ok = false;
-    QString newName = AutoExpandableDialog::getText(this, tr("Renaming"), tr("New name:"), QLineEdit::Normal
+    const QString newName = AutoExpandableDialog::getText(this, tr("Renaming"), tr("New name:"), QLineEdit::Normal
             , modelIndex.data().toString(), &ok, isFile).trimmed();
-    if (!ok || !modelIndex.isValid()) return;
 
-    const QString oldName = modelIndex.data().toString();
-    if (newName == oldName)
-        return;  // Name did not change
+    if (!ok || !modelIndex.isValid())
+        return;
 
-    const Path parentPath = getFullPath(modelIndex.parent());
-    const Path oldPath = parentPath / Path(oldName);
-    const Path newPath = parentPath / Path(newName);
-
-    try
-    {
-        if (isFile)
-            fileStorage.renameFile(oldPath, newPath);
-        else
-            fileStorage.renameFolder(oldPath, newPath);
-
-        model->setData(modelIndex, newName);
-    }
-    catch (const RuntimeError &error)
-    {
-        RaisedMessageBox::warning(this, tr("Rename error"), error.message(), QMessageBox::Ok);
-    }
+    model->setData(modelIndex, newName);
 }
 
 QModelIndex TorrentContentTreeView::currentNameCell()

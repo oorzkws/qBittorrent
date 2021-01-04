@@ -53,7 +53,7 @@ namespace Ui
 }
 
 class PropListDelegate;
-class TorrentContentFilterModel;
+class TorrentContentModel;
 class TorrentFileGuard;
 
 class AddNewTorrentDialog final : public QDialog
@@ -111,7 +111,7 @@ private:
     void showEvent(QShowEvent *event) override;
 
     Ui::AddNewTorrentDialog *m_ui;
-    TorrentContentFilterModel *m_contentModel = nullptr;
+    TorrentContentModel *m_contentModel = nullptr;
     PropListDelegate *m_contentDelegate = nullptr;
     BitTorrent::MagnetUri m_magnetURI;
     BitTorrent::TorrentInfo m_torrentInfo;
