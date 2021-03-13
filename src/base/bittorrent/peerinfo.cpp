@@ -207,13 +207,7 @@ qlonglong PeerInfo::totalDownload() const
 
 QBitArray PeerInfo::pieces() const
 {
-    QBitArray result(m_nativeInfo.pieces.size());
-    for (int i = 0; i < result.size(); ++i)
-    {
-        if (m_nativeInfo.pieces[lt::piece_index_t {i}])
-            result.setBit(i, true);
-    }
-    return result;
+    return QBitArray::fromBits(m_nativeInfo.pieces.data(), m_nativeInfo.pieces.size());
 }
 
 QString PeerInfo::connectionType() const

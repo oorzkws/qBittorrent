@@ -1185,13 +1185,7 @@ QVector<PeerInfo> TorrentImpl::peers() const
 
 QBitArray TorrentImpl::pieces() const
 {
-    QBitArray result(m_nativeStatus.pieces.size());
-    for (int i = 0; i < result.size(); ++i)
-    {
-        if (m_nativeStatus.pieces[lt::piece_index_t {i}])
-            result.setBit(i, true);
-    }
-    return result;
+    return QBitArray::fromBits(m_nativeStatus.pieces.data(), m_nativeStatus.pieces.size());
 }
 
 QBitArray TorrentImpl::downloadingPieces() const
