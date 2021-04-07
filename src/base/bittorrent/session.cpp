@@ -1086,7 +1086,7 @@ void Session::initializeNativeSession()
 #if (LIBTORRENT_VERSION_NUM >= 20000)
     sessionParams.disk_io_constructor = customDiskIOConstructor;
 #endif
-    m_nativeSession = new lt::session {sessionParams};
+    m_nativeSession = new lt::session {sessionParams, lt::session::paused};
 
     LogMsg(tr("Peer ID: ") + QString::fromStdString(peerId));
     LogMsg(tr("HTTP User-Agent is '%1'").arg(USER_AGENT));
@@ -4147,6 +4147,8 @@ void Session::startUpTorrents()
                        .arg(torrentID.toString()), Log::CRITICAL);
         }
     }
+
+    m_nativeSession->resume();
 }
 
 quint64 Session::getAlltimeDL() const
