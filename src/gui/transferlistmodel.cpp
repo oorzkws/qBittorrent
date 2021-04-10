@@ -86,6 +86,7 @@ namespace
             {BitTorrent::TorrentState::CheckingResumeData, QLatin1String("TransferList.CheckingResumeData")},
             {BitTorrent::TorrentState::PausedDownloading, QLatin1String("TransferList.PausedDownloading")},
             {BitTorrent::TorrentState::PausedUploading, QLatin1String("TransferList.PausedUploading")},
+            {BitTorrent::TorrentState::Loading, QLatin1String("TransferList.Loading")},
             {BitTorrent::TorrentState::Moving, QLatin1String("TransferList.Moving")},
             {BitTorrent::TorrentState::MissingFiles, QLatin1String("TransferList.MissingFiles")},
             {BitTorrent::TorrentState::Error, QLatin1String("TransferList.Error")}
@@ -122,6 +123,7 @@ TransferListModel::TransferListModel(QObject *parent)
           {BitTorrent::TorrentState::CheckingResumeData, tr("Checking resume data", "Used when loading the torrents from disk after qbt is launched. It checks the correctness of the .fastresume file. Normally it is completed in a fraction of a second, unless loading many many torrents.")},
           {BitTorrent::TorrentState::PausedDownloading, tr("Paused")},
           {BitTorrent::TorrentState::PausedUploading, tr("Completed")},
+          {BitTorrent::TorrentState::Loading, tr("Loading", "Used when loading the torrents from disk after qbt is launched")},
           {BitTorrent::TorrentState::Moving, tr("Moving", "Torrent local data are being moved/relocated")},
           {BitTorrent::TorrentState::MissingFiles, tr("Missing Files")},
           {BitTorrent::TorrentState::Error, tr("Errored", "Torrent status, the torrent has an error")}
@@ -686,6 +688,7 @@ QIcon getIconByState(const BitTorrent::TorrentState state)
     case BitTorrent::TorrentState::QueuedDownloading:
     case BitTorrent::TorrentState::QueuedUploading:
         return getQueuedIcon();
+    case BitTorrent::TorrentState::Loading:
     case BitTorrent::TorrentState::CheckingDownloading:
     case BitTorrent::TorrentState::CheckingUploading:
     case BitTorrent::TorrentState::CheckingResumeData:
@@ -742,6 +745,7 @@ QColor getDefaultColorByState(const BitTorrent::TorrentState state)
     case BitTorrent::TorrentState::CheckingDownloading:
     case BitTorrent::TorrentState::CheckingUploading:
     case BitTorrent::TorrentState::CheckingResumeData:
+    case BitTorrent::TorrentState::Loading:
     case BitTorrent::TorrentState::Moving:
         if (!dark)
             return {0, 128, 128}; // Teal

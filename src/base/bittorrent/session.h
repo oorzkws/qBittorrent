@@ -434,7 +434,7 @@ namespace BitTorrent
         void setOSMemoryPriority(OSMemoryPriority priority);
 #endif
 
-        void startUpTorrents();
+        void start();
         Torrent *findTorrent(const TorrentID &id) const;
         QVector<Torrent *> torrents() const;
         bool hasActiveTorrents() const;
@@ -466,6 +466,7 @@ namespace BitTorrent
         void bottomTorrentsQueuePos(const QVector<TorrentID> &ids);
 
         // Torrent interface
+        void handleTorrentLoadingFailed(const TorrentImpl *torrent, const QString &message);
         void handleTorrentNeedSaveResumeData(const TorrentImpl *torrent);
         void handleTorrentSaveResumeDataRequested(const TorrentImpl *torrent);
         void handleTorrentShareLimitChanged(TorrentImpl *const torrent);
@@ -571,6 +572,7 @@ namespace BitTorrent
         bool hasPerTorrentSeedingTimeLimit() const;
 
         void initResumeDataStorage();
+        void loadTorrents();
 
         // Session configuration
         Q_INVOKABLE void configure();
@@ -596,7 +598,6 @@ namespace BitTorrent
         void applyOSMemoryPriority() const;
 #endif
 
-        bool loadTorrent(LoadTorrentParams params);
         LoadTorrentParams initLoadTorrentParams(const AddTorrentParams &addTorrentParams);
         bool addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source, const AddTorrentParams &addTorrentParams);
 
@@ -605,7 +606,6 @@ namespace BitTorrent
 
         void handleAlert(const lt::alert *a);
         void dispatchTorrentAlert(const lt::alert *a);
-        void handleAddTorrentAlert(const lt::add_torrent_alert *p);
         void handleStateUpdateAlert(const lt::state_update_alert *p);
         void handleMetadataReceivedAlert(const lt::metadata_received_alert *p);
         void handleFileErrorAlert(const lt::file_error_alert *p);

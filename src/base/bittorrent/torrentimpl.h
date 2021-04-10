@@ -82,12 +82,12 @@ namespace BitTorrent
         Q_DECLARE_TR_FUNCTIONS(BitTorrent::TorrentImpl)
 
     public:
-        TorrentImpl(Session *session, lt::session *nativeSession
-                          , const lt::torrent_handle &nativeHandle, const LoadTorrentParams &params);
+        TorrentImpl(const TorrentID &id, Session *session, lt::session *nativeSession);
         ~TorrentImpl() override;
 
         bool isValid() const;
 
+        TorrentID id() const override;
         InfoHash infoHash() const override;
         QString name() const override;
         QDateTime creationDate() const override;
@@ -233,6 +233,9 @@ namespace BitTorrent
 
         // Session interface
         lt::torrent_handle nativeHandle() const;
+        QString actualStorageLocation() const;
+
+        void load(const LoadTorrentParams &params);
 
         void handleAlert(const lt::alert *a);
         void handleStateUpdate(const lt::torrent_status &nativeStatus);
@@ -243,8 +246,6 @@ namespace BitTorrent
         void handleMoveStorageJobFinished(bool hasOutstandingJob);
         void fileSearchFinished(const QString &savePath, const QStringList &fileNames);
 
-        QString actualStorageLocation() const;
-
     private:
         typedef std::function<void ()> EventTrigger;
 
@@ -252,6 +253,7 @@ namespace BitTorrent
         void updateStatus(const lt::torrent_status &nativeStatus);
         void updateState();
 
+        void handleAddTorrentAlert(const lt::add_torrent_alert *p);
         void handleFastResumeRejectedAlert(const lt::fastresume_rejected_alert *p);
         void handleFileCompletedAlert(const lt::file_completed_alert *p);
 #if (LIBTORRENT_VERSION_NUM >= 20003)
@@ -286,11 +288,12 @@ namespace BitTorrent
         void endReceivedMetadataHandling(const QString &savePath, const QStringList &fileNames);
         void reload();
 
+        const TorrentID m_id;
         Session *const m_session;
         lt::session *m_nativeSession;
         lt::torrent_handle m_nativeHandle;
         lt::torrent_status m_nativeStatus;
-        TorrentState m_state = TorrentState::Unknown;
+        TorrentState m_state = TorrentState::Loading;
         TorrentInfo m_torrentInfo;
         SpeedMonitor m_speedMonitor;
 
@@ -315,16 +318,16 @@ namespace BitTorrent
         QString m_savePath;
         QString m_category;
         QSet<QString> m_tags;
-        qreal m_ratioLimit;
-        int m_seedingTimeLimit;
-        TorrentOperatingMode m_operatingMode;
-        TorrentContentLayout m_contentLayout;
-        bool m_hasSeedStatus;
+        qreal m_ratioLimit = Torrent::USE_GLOBAL_RATIO;
+        int m_seedingTimeLimit = Torrent::USE_GLOBAL_SEEDING_TIME;
+        TorrentOperatingMode m_operatingMode = TorrentOperatingMode::AutoManaged;
+        TorrentContentLayout m_contentLayout = TorrentContentLayout::Original;
+        bool m_hasSeedStatus = false;
         bool m_fastresumeDataRejected = false;
         bool m_hasMissingFiles = false;
         bool m_hasFirstLastPiecePriority = false;
-        bool m_useAutoTMM;
-        bool m_isStopped;
+        bool m_useAutoTMM = false;
+        bool m_isStopped = true;
 
         bool m_unchecked = false;
 

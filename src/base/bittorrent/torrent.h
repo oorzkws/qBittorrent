@@ -59,6 +59,9 @@ namespace BitTorrent
     {
         Unknown = -1,
 
+        Loading,
+        CheckingResumeData,
+
         ForcedDownloading,
         Downloading,
         DownloadingMetadata,
@@ -68,7 +71,6 @@ namespace BitTorrent
         Uploading,
         StalledUploading,
 
-        CheckingResumeData,
         QueuedDownloading,
         QueuedUploading,
 
@@ -106,6 +108,7 @@ namespace BitTorrent
 
         virtual ~Torrent() = default;
 
+        virtual TorrentID id() const = 0;
         virtual InfoHash infoHash() const = 0;
         virtual QString name() const = 0;
         virtual QDateTime creationDate() const = 0;
@@ -291,7 +294,6 @@ namespace BitTorrent
 
         virtual QString createMagnetURI() const = 0;
 
-        TorrentID id() const;
         bool isResumed() const;
         qlonglong remainingSize() const;
 

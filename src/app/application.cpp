@@ -680,7 +680,7 @@ int Application::exec(const QStringList &params)
     m_running = true;
 
     // Now UI is ready to process signals from Session
-    BitTorrent::Session::instance()->startUpTorrents();
+    BitTorrent::Session::instance()->start();
 
     m_paramsQueue = params + m_paramsQueue;
     if (!m_paramsQueue.isEmpty())

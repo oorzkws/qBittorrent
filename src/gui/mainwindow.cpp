@@ -847,7 +847,7 @@ void MainWindow::balloonClicked()
 
 void MainWindow::addTorrentFailed(const QString &error) const
 {
-    showNotificationBaloon(tr("Error"), tr("Failed to add torrent: %1").arg(error));
+    showNotificationBaloon(tr("Error"), tr("Failed to load torrent: %1").arg(error));
 }
 
 // called when a torrent was added

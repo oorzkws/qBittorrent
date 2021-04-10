@@ -75,6 +75,8 @@ namespace
             return QLatin1String("forcedDL");
         case BitTorrent::TorrentState::CheckingResumeData:
             return QLatin1String("checkingResumeData");
+        case BitTorrent::TorrentState::Loading:
+            return QLatin1String("checkingResumeData"); // for backward compatibility
         case BitTorrent::TorrentState::Moving:
             return QLatin1String("moving");
         default:

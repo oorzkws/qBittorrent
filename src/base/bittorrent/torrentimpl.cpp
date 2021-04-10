@@ -71,6 +71,10 @@
 #include "session.h"
 #include "trackerentry.h"
 
+#if (LIBTORRENT_VERSION_NUM < 20000)
+#include "customstorage.h"
+#endif
+
 using namespace BitTorrent;
 
 namespace
@@ -223,70 +227,59 @@ namespace
 
 // TorrentImpl
 
-TorrentImpl::TorrentImpl(Session *session, lt::session *nativeSession
-                                     , const lt::torrent_handle &nativeHandle, const LoadTorrentParams &params)
-    : QObject(session)
-    , m_session(session)
-    , m_nativeSession(nativeSession)
-    , m_nativeHandle(nativeHandle)
-#if (LIBTORRENT_VERSION_NUM >= 20000)
-    , m_infoHash(m_nativeHandle.info_hashes())
-#else
-    , m_infoHash(m_nativeHandle.info_hash())
-#endif
-    , m_name(params.name)
-    , m_savePath(Utils::Fs::toNativePath(params.savePath))
-    , m_category(params.category)
-    , m_tags(params.tags)
-    , m_ratioLimit(params.ratioLimit)
-    , m_seedingTimeLimit(params.seedingTimeLimit)
-    , m_operatingMode(params.operatingMode)
-    , m_contentLayout(params.contentLayout)
-    , m_hasSeedStatus(params.hasSeedStatus)
-    , m_hasFirstLastPiecePriority(params.firstLastPiecePriority)
-    , m_useAutoTMM(params.savePath.isEmpty())
-    , m_isStopped(params.stopped)
-    , m_ltAddTorrentParams(params.ltAddTorrentParams)
+TorrentImpl::TorrentImpl(const TorrentID &id, Session *session, lt::session *nativeSession)
+    : QObject {session}
+    , m_id {id}
+    , m_session {session}
+    , m_nativeSession {nativeSession}
 {
+}
+
+void TorrentImpl::load(const LoadTorrentParams &params)
+{
+    m_ltAddTorrentParams = params.ltAddTorrentParams;
+
+    const bool hasMetadata = (m_ltAddTorrentParams.ti && m_ltAddTorrentParams.ti->is_valid());
+#if (LIBTORRENT_VERSION_NUM >= 20000)
+    const auto torrentID = TorrentID::fromInfoHash(
+                hasMetadata ? m_ltAddTorrentParams.ti->info_hashes() : m_ltAddTorrentParams.info_hashes);
+#else
+    const auto torrentID = TorrentID::fromInfoHash(
+                hasMetadata ? m_ltAddTorrentParams.ti->info_hash() : m_ltAddTorrentParams.info_hash);
+#endif
+
+    Q_ASSERT(torrentID == id());
+
+    m_name = params.name;
+    m_savePath = Utils::Fs::toNativePath(params.savePath);
+    m_category = params.category;
+    m_tags = params.tags;
+    m_ratioLimit = params.ratioLimit;
+    m_seedingTimeLimit = params.seedingTimeLimit;
+    m_operatingMode = params.operatingMode;
+    m_contentLayout = params.contentLayout;
+    m_hasSeedStatus = params.hasSeedStatus;
+    m_hasFirstLastPiecePriority = params.firstLastPiecePriority;
+    m_useAutoTMM = params.savePath.isEmpty();
+    m_isStopped = params.stopped;
+
     if (m_useAutoTMM)
         m_savePath = Utils::Fs::toNativePath(m_session->categorySavePath(m_category));
 
     if (m_ltAddTorrentParams.ti)
-    {
-        // Initialize it only if torrent is added with metadata.
-        // Otherwise it should be initialized in "Metadata received" handler.
-        m_torrentInfo = TorrentInfo {m_nativeHandle.torrent_file()};
-    }
+        m_torrentInfo = TorrentInfo {m_ltAddTorrentParams.ti};
 
     initializeStatus(m_nativeStatus, m_ltAddTorrentParams);
-    updateState();
 
-    if (hasMetadata())
-        applyFirstLastPiecePriority(m_hasFirstLastPiecePriority);
+#if (LIBTORRENT_VERSION_NUM < 20000)
+    m_ltAddTorrentParams.storage = customStorageConstructor;
+#endif
+    // Limits
+    m_ltAddTorrentParams.max_connections = m_session->maxConnectionsPerTorrent();
+    m_ltAddTorrentParams.max_uploads = m_session->maxUploadsPerTorrent();
 
-    // TODO: Remove the following upgrade code in v.4.4
-    // == BEGIN UPGRADE CODE ==
-    const QString spath = actualStorageLocation();
-    for (int i = 0; i < filesCount(); ++i)
-    {
-        const QString filepath = filePath(i);
-        // Move "unwanted" files back to their original folder
-        const QString parentRelPath = Utils::Fs::branchPath(filepath);
-        if (QDir(parentRelPath).dirName() == ".unwanted")
-        {
-            const QString oldName = Utils::Fs::fileName(filepath);
-            const QString newRelPath = Utils::Fs::branchPath(parentRelPath);
-            if (newRelPath.isEmpty())
-                renameFile(i, oldName);
-            else
-                renameFile(i, QDir(newRelPath).filePath(oldName));
-
-            // Remove .unwanted directory if empty
-            qDebug() << "Attempting to remove \".unwanted\" folder at " << QDir(spath + '/' + newRelPath).absoluteFilePath(".unwanted");
-            QDir(spath + '/' + newRelPath).rmdir(".unwanted");
-        }
-    }
-    // == END UPGRADE CODE ==
+    // Adding torrent to libtorrent session
+    m_nativeSession->async_add_torrent(m_ltAddTorrentParams);
 }
 
 TorrentImpl::~TorrentImpl() {}
@@ -294,6 +287,11 @@ TorrentImpl::~TorrentImpl() {}
 bool TorrentImpl::isValid() const
 {
     return m_nativeHandle.is_valid();
+}
+
+TorrentID TorrentImpl::id() const
+{
+    return m_id;
 }
 
 InfoHash TorrentImpl::infoHash() const
@@ -934,6 +932,62 @@ void TorrentImpl::updateState()
         else
             m_state = TorrentState::StalledDownloading;
     }
+}
+
+void TorrentImpl::handleAddTorrentAlert(const libtorrent::add_torrent_alert *p)
+{
+    if (p->error)
+    {
+        const QString msg = QString::fromStdString(p->message());
+        LogMsg(tr("Couldn't load torrent. Reason: %1").arg(msg), Log::WARNING);
+        m_session->handleTorrentLoadingFailed(this, msg);
+
+        // TODO: Mark torrent as errored!
+
+        return;
+    }
+
+    m_nativeHandle = p->handle;
+#if (LIBTORRENT_VERSION_NUM >= 20000)
+    m_infoHash = m_nativeHandle.info_hashes();
+#else
+    m_infoHash = m_nativeHandle.info_hash();
+#endif
+    if (m_ltAddTorrentParams.ti)
+    {
+        // Initialize it only if torrent is added with metadata.
+        // Otherwise it should be initialized in "Metadata received" handler.
+        m_torrentInfo = TorrentInfo {m_nativeHandle.torrent_file()};
+    }
+
+    if (hasMetadata())
+        applyFirstLastPiecePriority(m_hasFirstLastPiecePriority);
+
+    updateState();
+
+    // TODO: Remove the following upgrade code in v.4.4
+    // == BEGIN UPGRADE CODE ==
+    const QString spath = actualStorageLocation();
+    for (int i = 0; i < filesCount(); ++i)
+    {
+        const QString filepath = filePath(i);
+        // Move "unwanted" files back to their original folder
+        const QString parentRelPath = Utils::Fs::branchPath(filepath);
+        if (QDir(parentRelPath).dirName() == ".unwanted")
+        {
+            const QString oldName = Utils::Fs::fileName(filepath);
+            const QString newRelPath = Utils::Fs::branchPath(parentRelPath);
+            if (newRelPath.isEmpty())
+                renameFile(i, oldName);
+            else
+                renameFile(i, QDir(newRelPath).filePath(oldName));
+
+            // Remove .unwanted directory if empty
+            qDebug() << "Attempting to remove \".unwanted\" folder at " << QDir(spath + '/' + newRelPath).absoluteFilePath(".unwanted");
+            QDir(spath + '/' + newRelPath).rmdir(".unwanted");
+        }
+    }
+    // == END UPGRADE CODE ==
 }
 
 bool TorrentImpl::hasMetadata() const
@@ -1931,6 +1985,9 @@ void TorrentImpl::handleAlert(const lt::alert *a)
 {
     switch (a->type())
     {
+    case lt::add_torrent_alert::alert_type:
+        handleAddTorrentAlert(static_cast<const lt::add_torrent_alert*>(a));
+        break;
 #if (LIBTORRENT_VERSION_NUM >= 20003)
     case lt::file_prio_alert::alert_type:
         handleFilePrioAlert(static_cast<const lt::file_prio_alert*>(a));

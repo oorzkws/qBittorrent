@@ -452,6 +452,7 @@ Session::Session(QObject *parent)
         m_port = Utils::Random::rand(1024, 65535);
 
     initResumeDataStorage();
+    loadTorrents();
 
     m_recentErroredTorrentsTimer->setSingleShot(true);
     m_recentErroredTorrentsTimer->setInterval(1000);
@@ -515,6 +516,37 @@ Session::Session(QObject *parent)
     new PortForwarderImpl {m_nativeSession};
 
     initMetrics();
+}
+
+void Session::start()
+{
+    qDebug("Starting up BitTorrent session...");
+
+    int resumedTorrentsCount = 0;
+    for (TorrentImpl *torrent : asConst(m_torrents))
+    {
+        const TorrentID torrentID = torrent->id();
+        const std::optional<LoadTorrentParams> resumeData = m_resumeDataStorage->load(torrentID);
+        if (resumeData)
+        {
+            qDebug() << "Starting up torrent" << torrentID.toString() << "...";
+            torrent->load(*resumeData);
+
+            // process add torrent messages before message queue overflow
+            if ((resumedTorrentsCount % 100) == 0) readAlerts();
+
+            ++resumedTorrentsCount;
+        }
+        else
+        {
+            LogMsg(tr("Unable to resume torrent '%1'.", "e.g: Unable to resume torrent 'hash'.")
+                       .arg(torrentID.toString()), Log::CRITICAL);
+
+            // TODO: Mark torrent as errored!
+        }
+    }
+
+    m_nativeSession->resume();
 }
 
 bool Session::isDHTEnabled() const
@@ -1707,13 +1739,6 @@ void Session::handleDownloadFinished(const Net::DownloadResult &result)
 
 void Session::fileSearchFinished(const TorrentID &id, const QString &savePath, const QStringList &fileNames)
 {
-    TorrentImpl *torrent = m_torrents.value(id);
-    if (torrent)
-    {
-        torrent->fileSearchFinished(savePath, fileNames);
-        return;
-    }
-
     const auto loadingTorrentsIter = m_loadingTorrents.find(id);
     if (loadingTorrentsIter != m_loadingTorrents.end())
     {
@@ -1726,7 +1751,14 @@ void Session::fileSearchFinished(const TorrentID &id, const QString &savePath, c
         for (int i = 0; i < fileNames.size(); ++i)
             p.renamed_files[lt::file_index_t {i}] = fileNames[i].toStdString();
 
-        loadTorrent(params);
+        TorrentImpl *torrent = m_torrents.value(id);
+        torrent && torrent->load(params);
+    }
+    else
+    {
+        TorrentImpl *torrent = m_torrents.value(id);
+        if (torrent)
+            torrent->fileSearchFinished(savePath, fileNames);
     }
 }
 
@@ -1968,6 +2000,12 @@ void Session::bottomTorrentsQueuePos(const QVector<TorrentID> &ids)
     saveTorrentsQueue();
 }
 
+void Session::handleTorrentLoadingFailed(const TorrentImpl *torrent, const QString &message)
+{
+    Q_UNUSED(torrent);
+    emit loadTorrentFailed(message);
+}
+
 void Session::handleTorrentNeedSaveResumeData(const TorrentImpl *torrent)
 {
     if (m_needSaveResumeDataTorrents.empty())
@@ -2082,21 +2120,17 @@ bool Session::addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source
     const bool hasMetadata = std::holds_alternative<TorrentInfo>(source);
     TorrentInfo metadata = (hasMetadata ? std::get<TorrentInfo>(source) : TorrentInfo {});
     const MagnetUri &magnetUri = (hasMetadata ? MagnetUri {} : std::get<MagnetUri>(source));
-    const auto id = TorrentID::fromInfoHash(hasMetadata ? metadata.infoHash() : magnetUri.infoHash());
+    const auto torrentID = TorrentID::fromInfoHash(hasMetadata ? metadata.infoHash() : magnetUri.infoHash());
 
     // It looks illogical that we don't just use an existing handle,
     // but as previous experience has shown, it actually creates unnecessary
     // problems and unwanted behavior due to the fact that it was originally
     // added with parameters other than those provided by the user.
-    cancelDownloadMetadata(id);
+    cancelDownloadMetadata(torrentID);
 
     // We should not add the torrent if it is already
     // processed or is pending to add to session
-    if (m_loadingTorrents.contains(id))
-        return false;
-
-    TorrentImpl *const torrent = m_torrents.value(id);
-    if (torrent)
+    if (TorrentImpl *const torrent = m_torrents.value(torrentID))
     {  // a duplicate torrent is added
         if (torrent->isPrivate() || (hasMetadata && metadata.isPrivate()))
             return false;
@@ -2183,35 +2217,12 @@ bool Session::addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source
     else
         p.flags |= lt::torrent_flags::auto_managed;
 
+    auto *const torrent = new TorrentImpl {torrentID, this, m_nativeSession};
+    m_torrents.insert(torrent->id(), torrent);
     if (!isFindingIncompleteFiles)
-        return loadTorrent(loadTorrentParams);
-
-    m_loadingTorrents.insert(id, loadTorrentParams);
-    return true;
-}
-
-// Add a torrent to the BitTorrent session
-bool Session::loadTorrent(LoadTorrentParams params)
-{
-    lt::add_torrent_params &p = params.ltAddTorrentParams;
-
-#if (LIBTORRENT_VERSION_NUM < 20000)
-    p.storage = customStorageConstructor;
-#endif
-    // Limits
-    p.max_connections = maxConnectionsPerTorrent();
-    p.max_uploads = maxUploadsPerTorrent();
-
-    const bool hasMetadata = (p.ti && p.ti->is_valid());
-#if (LIBTORRENT_VERSION_NUM >= 20000)
-    const auto id = TorrentID::fromInfoHash(hasMetadata ? p.ti->info_hashes() : p.info_hashes);
-#else
-    const auto id = TorrentID::fromInfoHash(hasMetadata ? p.ti->info_hash() : p.info_hash);
-#endif
-    m_loadingTorrents.insert(id, params);
-
-    // Adding torrent to BitTorrent session
-    m_nativeSession->async_add_torrent(p);
+        torrent->load(loadTorrentParams);
+    else
+        m_loadingTorrents.insert(torrentID, loadTorrentParams);
 
     return true;
 }
@@ -2240,7 +2251,6 @@ bool Session::downloadMetadata(const MagnetUri &magnetUri)
     // We should not add torrent if it's already
     // processed or adding to session
     if (m_torrents.contains(id)) return false;
-    if (m_loadingTorrents.contains(id)) return false;
     if (m_downloadedMetadata.contains(id)) return false;
 
     qDebug("Adding torrent to preload metadata...");
@@ -3747,9 +3757,7 @@ void Session::setMaxRatioAction(const MaxRatioAction act)
 // but it is still possible to merge trackers in some cases
 bool Session::isKnownTorrent(const TorrentID &id) const
 {
-    return (m_torrents.contains(id)
-            || m_loadingTorrents.contains(id)
-            || m_downloadedMetadata.contains(id));
+    return (m_torrents.contains(id) || m_downloadedMetadata.contains(id));
 }
 
 void Session::updateSeedingLimitTimer()
@@ -4041,6 +4049,17 @@ void Session::initResumeDataStorage()
     m_resumeDataStorage = new BencodeResumeDataStorage(this);
 }
 
+void Session::loadTorrents()
+{
+    const QVector<TorrentID> torrents = m_resumeDataStorage->registeredTorrents();
+
+    for (const TorrentID &torrentID : torrents)
+    {
+        auto *const torrent = new TorrentImpl {torrentID, this, m_nativeSession};
+        m_torrents.insert(torrent->id(), torrent);
+    }
+}
+
 void Session::configureDeferred()
 {
     if (m_deferredConfigureScheduled)
@@ -4117,38 +4136,6 @@ const SessionStatus &Session::status() const
 const CacheStatus &Session::cacheStatus() const
 {
     return m_cacheStatus;
-}
-
-// Will resume torrents in backup directory
-void Session::startUpTorrents()
-{
-    qDebug("Starting up torrents...");
-
-    const QVector<TorrentID> torrents = m_resumeDataStorage->registeredTorrents();
-    int resumedTorrentsCount = 0;
-    for (const TorrentID &torrentID : torrents)
-    {
-        const std::optional<LoadTorrentParams> resumeData = m_resumeDataStorage->load(torrentID);
-        if (resumeData)
-        {
-            qDebug() << "Starting up torrent" << torrentID.toString() << "...";
-            if (!loadTorrent(*resumeData))
-                LogMsg(tr("Unable to resume torrent '%1'.", "e.g: Unable to resume torrent 'hash'.")
-                           .arg(torrentID.toString()), Log::CRITICAL);
-
-            // process add torrent messages before message queue overflow
-            if ((resumedTorrentsCount % 100) == 0) readAlerts();
-
-            ++resumedTorrentsCount;
-        }
-        else
-        {
-            LogMsg(tr("Unable to resume torrent '%1'.", "e.g: Unable to resume torrent 'hash'.")
-                       .arg(torrentID.toString()), Log::CRITICAL);
-        }
-    }
-
-    m_nativeSession->resume();
 }
 
 quint64 Session::getAlltimeDL() const
@@ -4230,6 +4217,7 @@ void Session::handleAlert(const lt::alert *a)
     {
         switch (a->type())
         {
+        case lt::add_torrent_alert::alert_type:
 #if (LIBTORRENT_VERSION_NUM >= 20003)
         case lt::file_prio_alert::alert_type:
 #endif
@@ -4256,9 +4244,6 @@ void Session::handleAlert(const lt::alert *a)
             break;
         case lt::file_error_alert::alert_type:
             handleFileErrorAlert(static_cast<const lt::file_error_alert*>(a));
-            break;
-        case lt::add_torrent_alert::alert_type:
-            handleAddTorrentAlert(static_cast<const lt::add_torrent_alert*>(a));
             break;
         case lt::torrent_removed_alert::alert_type:
             handleTorrentRemovedAlert(static_cast<const lt::torrent_removed_alert*>(a));
@@ -4377,21 +4362,6 @@ void Session::createTorrent(const lt::torrent_handle &nativeHandle)
     // Torrent could have error just after adding to libtorrent
     if (torrent->hasError())
         LogMsg(tr("Torrent errored. Torrent: \"%1\". Error: %2.").arg(torrent->name(), torrent->error()), Log::WARNING);
-}
-
-void Session::handleAddTorrentAlert(const lt::add_torrent_alert *p)
-{
-    if (p->error)
-    {
-        qDebug("/!\\ Error: Failed to add torrent!");
-        QString msg = QString::fromStdString(p->message());
-        LogMsg(tr("Couldn't load torrent. Reason: %1").arg(msg), Log::WARNING);
-        emit loadTorrentFailed(msg);
-    }
-    else if (m_loadingTorrents.contains(p->handle.info_hash()))
-    {
-        createTorrent(p->handle);
-    }
 }
 
 void Session::handleTorrentRemovedAlert(const lt::torrent_removed_alert *p)
