@@ -31,9 +31,6 @@
 
 #include <QWidget>
 
-#define ENGINE_URL_COLUMN 4
-#define URL_COLUMN 5
-
 class QHeaderView;
 class QModelIndex;
 class QStandardItemModel;

@@ -142,9 +142,6 @@ private slots:
     void optionsSaved();
     void toggleAlternativeSpeeds();
 
-#ifdef Q_OS_WIN
-    void pythonDownloadFinished(const Net::DownloadResult &result);
-#endif
     void addToolbarContextMenu();
     void manageCookies();
 
@@ -200,9 +197,6 @@ private:
 #else
     void createTrayIcon(int retries);
 #endif
-#ifdef Q_OS_WIN
-    void installPython();
-#endif
 
     void dropEvent(QDropEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -252,7 +246,6 @@ private:
     // Power Management
     PowerManagement *m_pwr;
     QTimer *m_preventTimer;
-    bool m_hasPython = false;
     QMenu *m_toolbarMenu;
 
     SettingValue<bool> m_storeExecutionLogEnabled;

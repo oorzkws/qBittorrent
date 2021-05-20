@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2018  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2021  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,27 +28,35 @@
 
 #pragma once
 
-#include <QObject>
+#include <QDialog>
 
-class QProcess;
+#include "base/settingvalue.h"
+#include "base/search/searchengine.h"
 
-class SearchPluginManager;
+namespace Ui
+{
+    class IndexerOptionsDialog;
+}
 
-class SearchDownloadHandler : public QObject
+class IndexerOptionsDialog final : public QDialog
 {
     Q_OBJECT
-    Q_DISABLE_COPY_MOVE(SearchDownloadHandler)
+    Q_DISABLE_COPY_MOVE(IndexerOptionsDialog)
 
-    friend class SearchPluginManager;
+public:
+    explicit IndexerOptionsDialog(QWidget *parent = nullptr);
+    ~IndexerOptionsDialog() override;
 
-    SearchDownloadHandler(const QString &siteUrl, const QString &url, SearchPluginManager *manager);
-
-signals:
-    void downloadFinished(const QString &path);
+    QString indexerName() const;
+    void setIndexerName(const QString &name);
+    IndexerOptions indexerOptions() const;
+    void setIndexerOptions(const IndexerOptions &indexerOptions);
 
 private:
-    void downloadProcessFinished(int exitcode);
+    void loadState();
+    void saveState();
+    void validate();
 
-    SearchPluginManager *m_manager;
-    QProcess *m_downloadProcess;
+    Ui::IndexerOptionsDialog *m_ui;
+    SettingValue<QSize> m_storeDialogSize;
 };

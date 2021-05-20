@@ -35,11 +35,11 @@
 #include <QJsonObject>
 #include <QList>
 #include <QSharedPointer>
+#include <QVector>
 
 #include "base/global.h"
 #include "base/logger.h"
 #include "base/search/searchhandler.h"
-#include "base/utils/foreignapps.h"
 #include "base/utils/random.h"
 #include "base/utils/string.h"
 #include "apierror.h"
@@ -68,21 +68,21 @@ namespace
     *   - "id"
     *   - "name"
     */
-    QJsonArray getPluginCategories(QStringList categories)
+    QJsonArray getIndexerCategories(QStringList categories)
     {
-        QJsonArray categoriesInfo
-        {QJsonObject {
-            {QLatin1String("id"), "all"},
-            {QLatin1String("name"), SearchPluginManager::categoryFullName("all")}
-        }};
+        QJsonArray categoriesInfo {
+            QJsonObject {
+                {QLatin1String("id"), "all"},
+                {QLatin1String("name"), SearchEngine::categoryFullName("all")}
+            }
+        };
 
         categories.sort(Qt::CaseInsensitive);
         for (const QString &category : categories)
         {
-            categoriesInfo << QJsonObject
-            {
+            categoriesInfo << QJsonObject {
                 {QLatin1String("id"), category},
-                {QLatin1String("name"), SearchPluginManager::categoryFullName(category)}
+                {QLatin1String("name"), SearchEngine::categoryFullName(category)}
             };
         }
 
@@ -92,38 +92,21 @@ namespace
 
 void SearchController::startAction()
 {
-    requireParams({"pattern", "category", "plugins"});
-
-    if (!Utils::ForeignApps::pythonInfo().isValid())
-        throw APIError(APIErrorType::Conflict, tr("Python must be installed to use the Search Engine."));
+    requireParams({"pattern", "category"});
 
     const QString pattern = params()["pattern"].trimmed();
     const QString category = params()["category"].trimmed();
-    const QStringList plugins = params()["plugins"].split('|');
-
-    QStringList pluginsToUse;
-    if (plugins.size() == 1)
-    {
-        const QString pluginsLower = plugins[0].toLower();
-        if (pluginsLower == "all")
-            pluginsToUse = SearchPluginManager::instance()->allPlugins();
-        else if ((pluginsLower == "enabled") || (pluginsLower == "multi"))
-            pluginsToUse = SearchPluginManager::instance()->enabledPlugins();
-        else
-            pluginsToUse << plugins;
-    }
-    else
-    {
-        pluginsToUse << plugins;
-    }
 
     ISession *const session = sessionManager()->session();
     auto activeSearches = session->getData<QSet<int>>(ACTIVE_SEARCHES);
     if (activeSearches.size() >= MAX_CONCURRENT_SEARCHES)
         throw APIError(APIErrorType::Conflict, tr("Unable to create more than %1 concurrent searches.").arg(MAX_CONCURRENT_SEARCHES));
 
+    const SearchHandlerPtr searchHandler {SearchEngine::instance()->startSearch(pattern, category)};
+    if (!searchHandler)
+        throw APIError(APIErrorType::Conflict, tr("There are no enabled indexers."));
+
     const auto id = generateSearchId();
-    const SearchHandlerPtr searchHandler {SearchPluginManager::instance()->startSearch(pattern, category, pluginsToUse)};
     QObject::connect(searchHandler.data(), &SearchHandler::searchFinished, this, [session, id, this]() { searchFinished(session, id); });
     QObject::connect(searchHandler.data(), &SearchHandler::searchFailed, this, [session, id, this]() { searchFailed(session, id); });
 
@@ -196,7 +179,7 @@ void SearchController::resultsAction()
         throw APIError(APIErrorType::NotFound);
 
     const SearchHandlerPtr searchHandler = searchHandlers[id];
-    const QList<SearchResult> searchResults = searchHandler->results();
+    const QVector<SearchResult> searchResults = searchHandler->results();
     const int size = searchResults.size();
 
     if (offset > size)
@@ -237,26 +220,15 @@ void SearchController::deleteAction()
 
 void SearchController::pluginsAction()
 {
-    const QStringList allPlugins = SearchPluginManager::instance()->allPlugins();
-    setResult(getPluginsInfo(allPlugins));
+    setResult(getIndexersInfo());
 }
 
 void SearchController::installPluginAction()
 {
-    requireParams({"sources"});
-
-    const QStringList sources = params()["sources"].split('|');
-    for (const QString &source : sources)
-        SearchPluginManager::instance()->installPlugin(source);
 }
 
 void SearchController::uninstallPluginAction()
 {
-    requireParams({"names"});
-
-    const QStringList names = params()["names"].split('|');
-    for (const QString &name : names)
-        SearchPluginManager::instance()->uninstallPlugin(name.trimmed());
 }
 
 void SearchController::enablePluginAction()
@@ -267,39 +239,11 @@ void SearchController::enablePluginAction()
     const bool enable = Utils::String::parseBool(params()["enable"].trimmed()).value_or(false);
 
     for (const QString &name : names)
-        SearchPluginManager::instance()->enablePlugin(name.trimmed(), enable);
+        SearchEngine::instance()->enableIndexer(name.trimmed(), enable);
 }
 
 void SearchController::updatePluginsAction()
 {
-    SearchPluginManager *const pluginManager = SearchPluginManager::instance();
-
-    connect(pluginManager, &SearchPluginManager::checkForUpdatesFinished, this, &SearchController::checkForUpdatesFinished);
-    connect(pluginManager, &SearchPluginManager::checkForUpdatesFailed, this, &SearchController::checkForUpdatesFailed);
-    pluginManager->checkForUpdates();
-}
-
-void SearchController::checkForUpdatesFinished(const QHash<QString, PluginVersion> &updateInfo)
-{
-    if (updateInfo.isEmpty())
-    {
-        LogMsg(tr("All plugins are already up to date."), Log::INFO);
-        return;
-    }
-
-    LogMsg(tr("Updating %1 plugins").arg(updateInfo.size()), Log::INFO);
-
-    SearchPluginManager *const pluginManager = SearchPluginManager::instance();
-    for (const QString &pluginName : asConst(updateInfo.keys()))
-    {
-        LogMsg(tr("Updating plugin %1").arg(pluginName), Log::INFO);
-        pluginManager->updatePlugin(pluginName);
-    }
-}
-
-void SearchController::checkForUpdatesFailed(const QString &reason)
-{
-    LogMsg(tr("Failed to check for plugin updates: %1").arg(reason), Log::INFO);
 }
 
 void SearchController::searchFinished(ISession *session, const int id)
@@ -337,7 +281,7 @@ int SearchController::generateSearchId() const
  *   - "siteUrl"
  *   - "descrLink"
  */
-QJsonObject SearchController::getResults(const QList<SearchResult> &searchResults, const bool isSearchActive, const int totalResults) const
+QJsonObject SearchController::getResults(const QVector<SearchResult> &searchResults, const bool isSearchActive, const int totalResults) const
 {
     QJsonArray searchResultsArray;
     for (const SearchResult &searchResult : searchResults)
@@ -347,9 +291,9 @@ QJsonObject SearchController::getResults(const QList<SearchResult> &searchResult
             {"fileName", searchResult.fileName},
             {"fileUrl", searchResult.fileUrl},
             {"fileSize", searchResult.fileSize},
-            {"nbSeeders", searchResult.nbSeeders},
-            {"nbLeechers", searchResult.nbLeechers},
-            {"siteUrl", searchResult.siteUrl},
+            {"nbSeeders", searchResult.numSeeders},
+            {"nbLeechers", searchResult.numLeechers},
+            {"siteUrl", searchResult.indexerName},
             {"descrLink", searchResult.descrLink}
         };
     }
@@ -377,24 +321,26 @@ QJsonObject SearchController::getResults(const QList<SearchResult> &searchResult
  *   - "iconPath"
  *   - "enabled"
  */
-QJsonArray SearchController::getPluginsInfo(const QStringList &plugins) const
+QJsonArray SearchController::getIndexersInfo() const
 {
-    QJsonArray pluginsArray;
+    QJsonArray indexersArray;
 
-    for (const QString &plugin : plugins)
+    const auto indexers = SearchEngine::instance()->indexers();
+    for (auto it = indexers.cbegin(); it != indexers.cend(); ++it)
     {
-        const PluginInfo *const pluginInfo = SearchPluginManager::instance()->pluginInfo(plugin);
+        const QString indexerName = it.key();
+        const IndexerInfo indexerInfo = it.value();
 
-        pluginsArray << QJsonObject
+        indexersArray << QJsonObject
         {
-            {"name", pluginInfo->name},
-            {"version", QString(pluginInfo->version)},
-            {"fullName", pluginInfo->fullName},
-            {"url", pluginInfo->url},
-            {"supportedCategories", getPluginCategories(pluginInfo->supportedCategories)},
-            {"enabled", pluginInfo->enabled}
+            {"name", indexerName},
+            {"version", {}},
+            {"fullName", indexerName},
+            {"url", indexerInfo.options.url},
+            {"supportedCategories", getIndexerCategories(SearchEngine::instance()->supportedCategories())},
+            {"enabled", indexerInfo.enabled}
         };
     }
 
-    return pluginsArray;
+    return indexersArray;
 }

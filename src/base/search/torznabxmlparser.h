@@ -1,7 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015, 2018, 2021  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
+ * Copyright (C) 2021  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,63 +28,40 @@
 
 #pragma once
 
-#include <QtContainerFwd>
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QVariantHash>
 #include <QVector>
 
 #include "searchresult.h"
 
-class QThread;
-class QTimer;
+class QXmlStreamReader;
 
-class SearchEngine;
-class TorznabXMLParser;
-struct TorznabRSSParsingResult;
-
-namespace Net
+struct TorznabRSSParsingResult
 {
-    class DownloadHandler;
-}
+    QString error;
+    QVector<SearchResult> items;
+};
 
-struct IndexerOptions;
-
-class SearchHandler final : public QObject
+class TorznabXMLParser final : public QObject
 {
     Q_OBJECT
-    Q_DISABLE_COPY_MOVE(SearchHandler)
-
-    friend class SearchEngine;
-
-    SearchHandler(SearchEngine *manager, const QString &pattern, const QString &category, QHash<QString, IndexerOptions> indexers);
+    Q_DISABLE_COPY_MOVE(TorznabXMLParser)
 
 public:
-    ~SearchHandler() override;
-
-    bool isActive() const;
-    QString pattern() const;
-    SearchEngine *manager() const;
-    QVector<SearchResult> results() const;
-
-    void cancelSearch();
+    TorznabXMLParser() = default;
+    void parse(const QString &indexerName, const QByteArray &feedData);
 
 signals:
-    void searchFinished(bool cancelled = false);
-    void searchFailed();
-    void newSearchResults(const QVector<SearchResult> &results);
+    void finished(const QString &indexerName, const TorznabRSSParsingResult &result);
 
 private:
-    void handleParsingFinished(const QString &indexerName, const TorznabRSSParsingResult &result);
+    void parseRSSItem(QXmlStreamReader &xml);
+    void parseRSSChannel(QXmlStreamReader &xml);
 
-    const QString m_pattern;
-    const QString m_category;
-    SearchEngine *m_manager;
-    QThread *m_parsingThread;
-    QTimer *m_searchTimeout;
-    TorznabXMLParser *m_parser;
-    int m_numOutstandingRequests = 0;
-    bool m_searchCancelled = false;
-    QVector<SearchResult> m_results;
-    QSet<Net::DownloadHandler *> m_downloadHandlers;
+    QString m_indexerName;
+    TorznabRSSParsingResult m_result;
 };
+
+Q_DECLARE_METATYPE(TorznabRSSParsingResult)
