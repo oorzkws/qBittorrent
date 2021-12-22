@@ -240,6 +240,13 @@ namespace
 
 // TorrentImpl
 
+TorrentImpl::TorrentImpl(const TorrentID &torrentID, Session *session, libtorrent::session *nativeSession)
+    : QObject(session)
+    , m_session(session)
+    , m_nativeSession(nativeSession)
+{
+}
+
 TorrentImpl::TorrentImpl(Session *session, lt::session *nativeSession
                                      , const lt::torrent_handle &nativeHandle, const LoadTorrentParams &params)
     : QObject(session)
@@ -908,6 +915,8 @@ TorrentState TorrentImpl::state() const
 
 void TorrentImpl::updateState()
 {
+    Q_ASSERT(m_nativeHandle.is_valid());
+
     if (m_nativeStatus.state == lt::torrent_status::checking_resume_data)
     {
         m_state = TorrentState::CheckingResumeData;

@@ -4218,52 +4218,77 @@ const CacheStatus &Session::cacheStatus() const
     return m_cacheStatus;
 }
 
-void Session::startUpTorrents()
+void Session::loadTorrents()
 {
+    Q_ASSERT(!m_resumeDataStorage);
+
     qDebug("Initializing torrents resume data storage...");
 
     const QString dbPath = Utils::Fs::expandPathAbs(
                 specialFolderLocation(SpecialFolder::Data) + QLatin1String("torrents.db"));
     const bool dbStorageExists = QFile::exists(dbPath);
 
-    ResumeDataStorage *startupStorage = nullptr;
-    if (resumeDataStorageType() == ResumeDataStorageType::SQLite)
+    if (dbStorageExists)
     {
         m_resumeDataStorage = new DBResumeDataStorage(dbPath, this);
-
-        if (!dbStorageExists)
-        {
-            const QString dataPath = Utils::Fs::expandPathAbs(
-                        specialFolderLocation(SpecialFolder::Data) + QLatin1String("BT_backup"));
-            startupStorage = new BencodeResumeDataStorage(dataPath, this);
-        }
     }
     else
     {
         const QString dataPath = Utils::Fs::expandPathAbs(
                     specialFolderLocation(SpecialFolder::Data) + QLatin1String("BT_backup"));
         m_resumeDataStorage = new BencodeResumeDataStorage(dataPath, this);
-
-        if (dbStorageExists)
-            startupStorage = new DBResumeDataStorage(dbPath, this);
     }
 
-    if (!startupStorage)
-        startupStorage = m_resumeDataStorage;
+    const QVector<TorrentID> torrents = m_resumeDataStorage->registeredTorrents();
+    for (const TorrentID &torrentID : torrents)
+    {
+        auto *const torrent = new TorrentImpl(torrentID, this, m_nativeSession);
+        m_torrents.insert(torrentID, torrent);
+
+        LogMsg(tr("'%1' restored.", "'torrent ID' restored.").arg(torrentID.toString()));
+    }
+}
+
+void Session::startUpTorrents()
+{
+    const QString dbPath = Utils::Fs::expandPathAbs(
+                specialFolderLocation(SpecialFolder::Data) + QLatin1String("torrents.db"));
+
+    ResumeDataStorage *targetStorage = nullptr;
+    if (resumeDataStorageType() == ResumeDataStorageType::SQLite)
+    {
+        if (qobject_cast<DBResumeDataStorage *>(m_resumeDataStorage))
+            targetStorage = m_resumeDataStorage;
+        else
+            targetStorage = new DBResumeDataStorage(dbPath, this);
+    }
+    else
+    {
+        if (qobject_cast<BencodeResumeDataStorage *>(m_resumeDataStorage))
+        {
+            targetStorage = m_resumeDataStorage;
+        }
+        else
+        {
+            const QString dataPath = Utils::Fs::expandPathAbs(
+                        specialFolderLocation(SpecialFolder::Data) + QLatin1String("BT_backup"));
+            targetStorage = new BencodeResumeDataStorage(dataPath, this);
+        }
+    }
 
     qDebug("Starting up torrents...");
 
-    const QVector<TorrentID> torrents = startupStorage->registeredTorrents();
     int resumedTorrentsCount = 0;
     QVector<TorrentID> queue;
-    for (const TorrentID &torrentID : torrents)
+    for (TorrentImpl *torrent : asConst(m_torrents))
     {
-        const std::optional<LoadTorrentParams> resumeData = startupStorage->load(torrentID);
+        const TorrentID torrentID = torrent->id();
+        const std::optional<LoadTorrentParams> resumeData = m_resumeDataStorage->load(torrentID);
         if (resumeData)
         {
-            if (m_resumeDataStorage != startupStorage)
+            if (m_resumeDataStorage != targetStorage)
             {
-                m_resumeDataStorage->store(torrentID, *resumeData);
+                targetStorage->store(torrentID, *resumeData);
                 if (isQueueingSystemEnabled() && !resumeData->hasSeedStatus)
                     queue.append(torrentID);
             }
@@ -4285,9 +4310,10 @@ void Session::startUpTorrents()
         }
     }
 
-    if (m_resumeDataStorage != startupStorage)
+    if (m_resumeDataStorage != targetStorage)
     {
-        delete startupStorage;
+        delete m_resumeDataStorage;
+        m_resumeDataStorage = targetStorage;
         if (resumeDataStorageType() == ResumeDataStorageType::Legacy)
             Utils::Fs::forceRemove(dbPath);
 

@@ -186,7 +186,8 @@ bool TorrentFilter::matchState(const BitTorrent::Torrent *const torrent) const
     case Checking:
         return (torrent->state() == BitTorrent::TorrentState::CheckingUploading)
                 || (torrent->state() == BitTorrent::TorrentState::CheckingDownloading)
-                || (torrent->state() == BitTorrent::TorrentState::CheckingResumeData);
+                || (torrent->state() == BitTorrent::TorrentState::CheckingResumeData)
+                || (torrent->state() == BitTorrent::TorrentState::Launching);
     case Errored:
         return torrent->isErrored();
     default: // All

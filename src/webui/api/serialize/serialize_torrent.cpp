@@ -79,7 +79,10 @@ namespace
             return QLatin1String("checkingResumeData");
         case BitTorrent::TorrentState::Moving:
             return QLatin1String("moving");
+        case BitTorrent::TorrentState::Launching:
+            return QLatin1String("launching");
         default:
+            Q_ASSERT(false);
             return QLatin1String("unknown");
         }
     }

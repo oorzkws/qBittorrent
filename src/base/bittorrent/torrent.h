@@ -68,7 +68,7 @@ namespace BitTorrent
 
     enum class TorrentState
     {
-        Unknown = -1,
+        Launching,
 
         ForcedDownloading,
         Downloading,

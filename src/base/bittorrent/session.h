@@ -441,6 +441,7 @@ namespace BitTorrent
         void setOSMemoryPriority(OSMemoryPriority priority);
 #endif
 
+        void loadTorrents();
         void startUpTorrents();
         Torrent *findTorrent(const TorrentID &id) const;
         QVector<Torrent *> torrents() const;

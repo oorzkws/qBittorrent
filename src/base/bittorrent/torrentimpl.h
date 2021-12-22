@@ -80,6 +80,7 @@ namespace BitTorrent
         Q_DECLARE_TR_FUNCTIONS(BitTorrent::TorrentImpl)
 
     public:
+        TorrentImpl(const TorrentID &torrentID, Session *session, lt::session *nativeSession);
         TorrentImpl(Session *session, lt::session *nativeSession
                           , const lt::torrent_handle &nativeHandle, const LoadTorrentParams &params);
         ~TorrentImpl() override;
@@ -287,7 +288,7 @@ namespace BitTorrent
         lt::session *m_nativeSession;
         lt::torrent_handle m_nativeHandle;
         lt::torrent_status m_nativeStatus;
-        TorrentState m_state = TorrentState::Unknown;
+        TorrentState m_state = TorrentState::Launching;
         TorrentInfo m_torrentInfo;
         QStringList m_filePaths;
         SpeedMonitor m_speedMonitor;

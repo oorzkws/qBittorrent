@@ -72,6 +72,7 @@ namespace
 
         const TorrentStateColorDescriptor colorDescriptors[] =
         {
+            {BitTorrent::TorrentState::Launching, QLatin1String("TransferList.Launching")},
             {BitTorrent::TorrentState::Downloading, QLatin1String("TransferList.Downloading")},
             {BitTorrent::TorrentState::StalledDownloading, QLatin1String("TransferList.StalledDownloading")},
             {BitTorrent::TorrentState::DownloadingMetadata, QLatin1String("TransferList.DownloadingMetadata")},
@@ -107,8 +108,8 @@ namespace
 
 TransferListModel::TransferListModel(QObject *parent)
     : QAbstractListModel {parent}
-    , m_statusStrings
-    {
+    , m_statusStrings {
+          {BitTorrent::TorrentState::Launching, tr("Launching")},
           {BitTorrent::TorrentState::Downloading, tr("Downloading")},
           {BitTorrent::TorrentState::StalledDownloading, tr("Stalled", "Torrent is waiting for download to begin")},
           {BitTorrent::TorrentState::DownloadingMetadata, tr("Downloading metadata", "Used when loading a magnet link")},
@@ -682,6 +683,7 @@ QIcon getIconByState(const BitTorrent::TorrentState state)
     case BitTorrent::TorrentState::QueuedDownloading:
     case BitTorrent::TorrentState::QueuedUploading:
         return getQueuedIcon();
+    case BitTorrent::TorrentState::Launching:
     case BitTorrent::TorrentState::CheckingDownloading:
     case BitTorrent::TorrentState::CheckingUploading:
     case BitTorrent::TorrentState::CheckingResumeData:
@@ -734,6 +736,7 @@ QColor getDefaultColorByState(const BitTorrent::TorrentState state)
     case BitTorrent::TorrentState::Error:
     case BitTorrent::TorrentState::MissingFiles:
         return {255, 0, 0}; // red
+    case BitTorrent::TorrentState::Launching:
     case BitTorrent::TorrentState::QueuedDownloading:
     case BitTorrent::TorrentState::QueuedUploading:
     case BitTorrent::TorrentState::CheckingDownloading:
