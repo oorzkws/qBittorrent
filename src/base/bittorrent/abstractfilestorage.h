@@ -48,7 +48,6 @@ namespace BitTorrent
 
         virtual void renameFile(int index, const QString &name) = 0;
 
-        void renameFile(const QString &oldPath, const QString &newPath);
-        void renameFolder(const QString &oldPath, const QString &newPath);
+        void renameItem(const QString &oldPath, const QString &newPath);
     };
 }

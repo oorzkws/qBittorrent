@@ -1370,7 +1370,7 @@ void TorrentsController::renameFileAction()
 
     try
     {
-        torrent->renameFile(oldPath, newPath);
+        torrent->renameItem(oldPath, newPath);
     }
     catch (const RuntimeError &error)
     {
@@ -1380,22 +1380,5 @@ void TorrentsController::renameFileAction()
 
 void TorrentsController::renameFolderAction()
 {
-    requireParams({"hash", "oldPath", "newPath"});
-
-    const auto id = BitTorrent::TorrentID::fromString(params()["hash"]);
-    BitTorrent::Torrent *const torrent = BitTorrent::Session::instance()->findTorrent(id);
-    if (!torrent)
-        throw APIError(APIErrorType::NotFound);
-
-    const QString oldPath = params()["oldPath"];
-    const QString newPath = params()["newPath"];
-
-    try
-    {
-        torrent->renameFolder(oldPath, newPath);
-    }
-    catch (const RuntimeError &error)
-    {
-        throw APIError(APIErrorType::Conflict, error.message());
-    }
+    renameFileAction();
 }

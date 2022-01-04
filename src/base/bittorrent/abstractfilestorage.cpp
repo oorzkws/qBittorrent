@@ -49,77 +49,64 @@ namespace
     }
 }
 
-void BitTorrent::AbstractFileStorage::renameFile(const QString &oldPath, const QString &newPath)
+void BitTorrent::AbstractFileStorage::renameItem(const QString &oldPath, const QString &newPath)
 {
     if (!Utils::Fs::isValidFileSystemName(oldPath, true))
-        throw RuntimeError {tr("The old path is invalid: '%1'.").arg(oldPath)};
+        throw RuntimeError(tr("The old path is invalid: '%1'.").arg(oldPath));
     if (!Utils::Fs::isValidFileSystemName(newPath, true))
-        throw RuntimeError {tr("The new path is invalid: '%1'.").arg(newPath)};
+        throw RuntimeError(tr("The new path is invalid: '%1'.").arg(newPath));
 
-    const QString oldFilePath = Utils::Fs::toUniformPath(oldPath);
-    if (oldFilePath.endsWith(QLatin1Char {'/'}))
-        throw RuntimeError {tr("Invalid file path: '%1'.").arg(oldFilePath)};
+    const QString oldFilePath = QDir::cleanPath(oldPath);
+    const QString newFilePath = QDir::cleanPath(newPath);
 
-    const QString newFilePath = Utils::Fs::toUniformPath(newPath);
-    if (newFilePath.endsWith(QLatin1Char {'/'}))
-        throw RuntimeError {tr("Invalid file path: '%1'.").arg(newFilePath)};
     if (QDir().isAbsolutePath(newFilePath))
-        throw RuntimeError {tr("Absolute path isn't allowed: '%1'.").arg(newFilePath)};
+        throw RuntimeError(tr("Absolute path isn't allowed: '%1'.").arg(newFilePath));
 
-    int renamingFileIndex = -1;
-    for (int i = 0; i < filesCount(); ++i)
-    {
-        const QString path = filePath(i);
-
-        if ((renamingFileIndex < 0) && areSameFileNames(path, oldFilePath))
-            renamingFileIndex = i;
-        else if (areSameFileNames(path, newFilePath))
-            throw RuntimeError {tr("The file already exists: '%1'.").arg(newFilePath)};
-    }
-
-    if (renamingFileIndex < 0)
-        throw RuntimeError {tr("No such file: '%1'.").arg(oldFilePath)};
-
-    renameFile(renamingFileIndex, newFilePath);
-}
-
-void BitTorrent::AbstractFileStorage::renameFolder(const QString &oldPath, const QString &newPath)
-{
-    if (!Utils::Fs::isValidFileSystemName(oldPath, true))
-        throw RuntimeError {tr("The old path is invalid: '%1'.").arg(oldPath)};
-    if (!Utils::Fs::isValidFileSystemName(newPath, true))
-        throw RuntimeError {tr("The new path is invalid: '%1'.").arg(newPath)};
-
-    const auto cleanFolderPath = [](const QString &path) -> QString
-    {
-        const QString uniformPath = Utils::Fs::toUniformPath(path);
-        return (uniformPath.endsWith(QLatin1Char {'/'}) ? uniformPath : uniformPath + QLatin1Char {'/'});
-    };
-
-    const QString oldFolderPath = cleanFolderPath(oldPath);
-    const QString newFolderPath = cleanFolderPath(newPath);
-    if (QDir().isAbsolutePath(newFolderPath))
-        throw RuntimeError {tr("Absolute path isn't allowed: '%1'.").arg(newFolderPath)};
+    const QString oldFolderPrefix = oldFilePath + QLatin1Char('/');
+    const QString newFolderPrefix = newFilePath + QLatin1Char('/');
 
     QVector<int> renamingFileIndexes;
     renamingFileIndexes.reserve(filesCount());
 
+    bool isFolder = false;
+
     for (int i = 0; i < filesCount(); ++i)
     {
         const QString path = filePath(i);
 
-        if (path.startsWith(oldFolderPath, CASE_SENSITIVITY))
+        if (renamingFileIndexes.isEmpty()
+                && areSameFileNames(path, oldFilePath))
+        {
             renamingFileIndexes.append(i);
-        else if (path.startsWith(newFolderPath, CASE_SENSITIVITY))
-            throw RuntimeError {tr("The folder already exists: '%1'.").arg(newFolderPath)};
+        }
+
+        if ((renamingFileIndexes.isEmpty() || isFolder)
+                && path.startsWith(oldFolderPrefix, CASE_SENSITIVITY))
+        {
+            renamingFileIndexes.append(i);
+            isFolder = true;
+        }
+
+        if (areSameFileNames(path, newFilePath))
+            throw RuntimeError(tr("The file already exists: '%1'.").arg(newFilePath));
+
+        if (path.startsWith(newFolderPrefix, CASE_SENSITIVITY))
+            throw RuntimeError(tr("The folder already exists: '%1'.").arg(newFilePath));
     }
 
     if (renamingFileIndexes.isEmpty())
-        throw RuntimeError {tr("No such folder: '%1'.").arg(oldFolderPath)};
+        throw RuntimeError(tr("No such file or folder: '%1'.").arg(oldFilePath));
 
-    for (const int index : renamingFileIndexes)
+    if (!isFolder)
     {
-        const QString newFilePath = newFolderPath + filePath(index).mid(oldFolderPath.size());
-        renameFile(index, newFilePath);
+        renameFile(renamingFileIndexes.first(), newFilePath);
+    }
+    else
+    {
+        for (const int index : renamingFileIndexes)
+        {
+            const QString newFilePath = newFolderPrefix + filePath(index).mid(oldFolderPrefix.size());
+            renameFile(index, newFilePath);
+        }
     }
 }

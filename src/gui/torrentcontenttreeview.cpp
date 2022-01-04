@@ -136,11 +136,7 @@ void TorrentContentTreeView::renameSelectedFile(BitTorrent::AbstractFileStorage 
 
     try
     {
-        if (isFile)
-            fileStorage.renameFile(oldPath, newPath);
-        else
-            fileStorage.renameFolder(oldPath, newPath);
-
+        fileStorage.renameItem(oldPath, newPath);
         model->setData(modelIndex, newName);
     }
     catch (const RuntimeError &error)
