@@ -2,6 +2,9 @@ add_library(qbt_base STATIC
     # headers
     3rdparty/expected.hpp
     algorithm.h
+    application.h
+    applicationcomponent.h
+    applicationinstancemanager.h
     asyncfilestorage.h
     bittorrent/abstractfilestorage.h
     bittorrent/addtorrentparams.h
@@ -38,8 +41,10 @@ add_library(qbt_base STATIC
     bittorrent/torrentinfo.h
     bittorrent/tracker.h
     bittorrent/trackerentry.h
+    cmdoptions.h
     digest32.h
     exceptions.h
+    filelogger.h
     global.h
     http/connection.h
     http/httperror.h
@@ -67,6 +72,7 @@ add_library(qbt_base STATIC
     preferences.h
     profile.h
     profile_p.h
+    qtlocalpeer/qtlocalpeer.h
     rss/rss_article.h
     rss/rss_autodownloader.h
     rss/rss_autodownloadrule.h
@@ -100,6 +106,9 @@ add_library(qbt_base STATIC
     version.h
 
     # sources
+    application.cpp
+    applicationcomponent.cpp
+    applicationinstancemanager.cpp
     asyncfilestorage.cpp
     bittorrent/abstractfilestorage.cpp
     bittorrent/bandwidthscheduler.cpp
@@ -128,7 +137,9 @@ add_library(qbt_base STATIC
     bittorrent/torrentinfo.cpp
     bittorrent/tracker.cpp
     bittorrent/trackerentry.cpp
+    cmdoptions.cpp
     exceptions.cpp
+    filelogger.cpp
     http/connection.cpp
     http/httperror.cpp
     http/requestparser.cpp
@@ -150,6 +161,7 @@ add_library(qbt_base STATIC
     preferences.cpp
     profile.cpp
     profile_p.cpp
+    qtlocalpeer/qtlocalpeer.cpp
     rss/rss_article.cpp
     rss/rss_autodownloader.cpp
     rss/rss_autodownloadrule.cpp

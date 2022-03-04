@@ -61,7 +61,6 @@
 #include "base/utils/random.h"
 #include "addnewtorrentdialog.h"
 #include "advancedsettings.h"
-#include "app/application.h"
 #include "banlistoptionsdialog.h"
 #include "ipsubnetwhitelistoptionsdialog.h"
 #include "rss/automatedrssdownloader.h"
@@ -176,8 +175,9 @@ private:
 };
 
 // Constructor
-OptionsDialog::OptionsDialog(QWidget *parent)
+OptionsDialog::OptionsDialog(GUIApplication *app, QWidget *parent)
     : QDialog {parent}
+    , GUIApplicationComponent {app}
     , m_ui {new Ui::OptionsDialog}
     , m_storeDialogSize {SETTINGS_KEY("Size")}
     , m_storeHSplitterSize {SETTINGS_KEY("HorizontalSplitterSizes")}
@@ -542,7 +542,7 @@ OptionsDialog::OptionsDialog(QWidget *parent)
     // Tab selection mechanism
     connect(m_ui->tabSelection, &QListWidget::currentItemChanged, this, &ThisType::changePage);
     // Load Advanced settings
-    m_advancedSettings = new AdvancedSettings(m_ui->tabAdvancedPage);
+    m_advancedSettings = new AdvancedSettings(app, m_ui->tabAdvancedPage);
     m_ui->advPageLayout->addWidget(m_advancedSettings);
     connect(m_advancedSettings, &AdvancedSettings::settingsChanged, this, &ThisType::enableApplyButton);
 
@@ -719,7 +719,7 @@ void OptionsDialog::saveOptions()
 #endif
     session->setPerformanceWarningEnabled(m_ui->checkBoxPerformanceWarning->isChecked());
 
-    auto *const app = static_cast<Application *>(QCoreApplication::instance());
+    auto *const app = this->app();
     app->setFileLoggerPath(m_ui->textFileLogPath->selectedPath());
     app->setFileLoggerBackup(m_ui->checkFileLogBackup->isChecked());
     app->setFileLoggerMaxSize(m_ui->spinFileLogSize->value() * 1024);
@@ -968,7 +968,7 @@ void OptionsDialog::loadOptions()
 #endif
     m_ui->checkBoxPerformanceWarning->setChecked(session->isPerformanceWarningEnabled());
 
-    const Application *const app = static_cast<Application*>(QCoreApplication::instance());
+    const auto *const app = this->app();
     m_ui->checkFileLog->setChecked(app->isFileLoggerEnabled());
     m_ui->textFileLogPath->setSelectedPath(app->fileLoggerPath());
     const bool fileLogBackup = app->isFileLoggerBackup();

@@ -336,7 +336,7 @@ namespace
     constexpr const TriStateBoolOption SKIP_DIALOG_OPTION {"skip-dialog", true};
 }
 
-QBtCommandLineParameters::QBtCommandLineParameters(const QProcessEnvironment &env)
+CommandLineParameters::CommandLineParameters(const QProcessEnvironment &env)
     : showHelp(false)
     , relativeFastresumePaths(RELATIVE_FASTRESUME.value(env))
     , skipChecking(SKIP_HASH_CHECK_OPTION.value(env))
@@ -360,7 +360,7 @@ QBtCommandLineParameters::QBtCommandLineParameters(const QProcessEnvironment &en
 {
 }
 
-QStringList QBtCommandLineParameters::paramList() const
+QStringList CommandLineParameters::paramList() const
 {
     QStringList result;
     // Because we're passing a string list to the currently running
@@ -396,9 +396,9 @@ QStringList QBtCommandLineParameters::paramList() const
     return result;
 }
 
-QBtCommandLineParameters parseCommandLine(const QStringList &args)
+CommandLineParameters parseCommandLine(const QStringList &args)
 {
-    QBtCommandLineParameters result {QProcessEnvironment::systemEnvironment()};
+    CommandLineParameters result {QProcessEnvironment::systemEnvironment()};
 
     for (int i = 1; i < args.count(); ++i)
     {
@@ -406,7 +406,7 @@ QBtCommandLineParameters parseCommandLine(const QStringList &args)
 
         if ((arg.startsWith("--") && !arg.endsWith(".torrent"))
             || (arg.startsWith('-') && (arg.size() == 2)))
-            {
+        {
             // Parse known parameters
             if (arg == SHOW_HELP_OPTION)
             {
@@ -522,9 +522,9 @@ QString wrapText(const QString &text, int initialIndentation = USAGE_TEXT_COLUMN
 
 QString makeUsage(const QString &prgName)
 {
+    const QString indentation {USAGE_INDENTATION, ' '};
     QString text;
-    QTextStream stream(&text, QIODevice::WriteOnly);
-    QString indentation = QString(USAGE_INDENTATION, ' ');
+    QTextStream stream {&text, QIODevice::WriteOnly};
 
     stream << QObject::tr("Usage:") << '\n'
         << indentation << prgName << QLatin1String(" [options] [(<filename> | <url>)...]") << '\n'

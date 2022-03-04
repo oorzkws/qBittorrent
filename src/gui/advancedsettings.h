@@ -34,12 +34,15 @@
 #include <QSpinBox>
 #include <QTableWidget>
 
-class AdvancedSettings : public QTableWidget
+#include "guiapplicationcomponent.h"
+
+class AdvancedSettings : public QTableWidget, public GUIApplicationComponent
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(AdvancedSettings)
 
 public:
-    AdvancedSettings(QWidget *parent);
+    explicit AdvancedSettings(GUIApplication *app, QWidget *parent);
 
 public slots:
     void saveAdvancedSettings();

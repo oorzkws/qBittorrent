@@ -1,6 +1,9 @@
 HEADERS += \
     $$PWD/3rdparty/expected.hpp \
     $$PWD/algorithm.h \
+    $$PWD/application.h \
+    $$PWD/applicationcomponent.h \
+    $$PWD/applicationinstancemanager.h \
     $$PWD/asyncfilestorage.h \
     $$PWD/bittorrent/abstractfilestorage.h \
     $$PWD/bittorrent/addtorrentparams.h \
@@ -37,8 +40,10 @@ HEADERS += \
     $$PWD/bittorrent/torrentinfo.h \
     $$PWD/bittorrent/tracker.h \
     $$PWD/bittorrent/trackerentry.h \
+    $$PWD/cmdoptions.h \
     $$PWD/digest32.h \
     $$PWD/exceptions.h \
+    $$PWD/filelogger.h \
     $$PWD/global.h \
     $$PWD/http/connection.h \
     $$PWD/http/httperror.h \
@@ -66,6 +71,7 @@ HEADERS += \
     $$PWD/preferences.h \
     $$PWD/profile.h \
     $$PWD/profile_p.h \
+    $$PWD/qtlocalpeer/qtlocalpeer.h \
     $$PWD/rss/rss_article.h \
     $$PWD/rss/rss_autodownloader.h \
     $$PWD/rss/rss_autodownloadrule.h \
@@ -100,6 +106,9 @@ HEADERS += \
     $$PWD/version.h
 
 SOURCES += \
+    $$PWD/application.cpp \
+    $$PWD/applicationcomponent.cpp \
+    $$PWD/applicationinstancemanager.cpp \
     $$PWD/asyncfilestorage.cpp \
     $$PWD/bittorrent/abstractfilestorage.cpp \
     $$PWD/bittorrent/bandwidthscheduler.cpp \
@@ -128,7 +137,9 @@ SOURCES += \
     $$PWD/bittorrent/torrentinfo.cpp \
     $$PWD/bittorrent/tracker.cpp \
     $$PWD/bittorrent/trackerentry.cpp \
+    $$PWD/cmdoptions.cpp \
     $$PWD/exceptions.cpp \
+    $$PWD/filelogger.cpp \
     $$PWD/http/connection.cpp \
     $$PWD/http/httperror.cpp \
     $$PWD/http/requestparser.cpp \
@@ -150,6 +161,7 @@ SOURCES += \
     $$PWD/preferences.cpp \
     $$PWD/profile.cpp \
     $$PWD/profile_p.cpp \
+    $$PWD/qtlocalpeer/qtlocalpeer.cpp \
     $$PWD/rss/rss_article.cpp \
     $$PWD/rss/rss_autodownloader.cpp \
     $$PWD/rss/rss_autodownloadrule.cpp \

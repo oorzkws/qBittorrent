@@ -79,7 +79,7 @@ Q_IMPORT_PLUGIN(QICOPlugin)
 #include "base/preferences.h"
 #include "base/profile.h"
 #include "base/version.h"
-#include "application.h"
+#include "applicationimpl.h"
 #include "cmdoptions.h"
 #include "upgrade.h"
 
@@ -137,18 +137,18 @@ int main(int argc, char *argv[])
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0)) && !defined(DISABLE_GUI)
     // Attribute Qt::AA_EnableHighDpiScaling must be set before QCoreApplication is created
     if (qgetenv("QT_ENABLE_HIGHDPI_SCALING").isEmpty() && qgetenv("QT_AUTO_SCREEN_SCALE_FACTOR").isEmpty())
-        Application::setAttribute(Qt::AA_EnableHighDpiScaling, true);
+        QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
     // HighDPI scale factor policy must be set before QGuiApplication is created
     if (qgetenv("QT_SCALE_FACTOR_ROUNDING_POLICY").isEmpty())
-        Application::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+        QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
 
     try
     {
         // Create Application
-        auto app = std::make_unique<Application>(argc, argv);
+        auto app = std::make_unique<ApplicationImpl>(argc, argv);
 
-        const QBtCommandLineParameters params = app->commandLineArgs();
+        const CommandLineParameters params = app->commandLineArgs();
         if (!params.unknownParameter.isEmpty())
         {
             throw CommandLineParameterError(QObject::tr("%1 is an unknown command line parameter.",
@@ -249,12 +249,6 @@ int main(int argc, char *argv[])
         QByteArray path = "/usr/local/bin:";
         path += qgetenv("PATH");
         qputenv("PATH", path.constData());
-
-        // On OS X the standard is to not show icons in the menus
-        app->setAttribute(Qt::AA_DontShowIconsInMenus);
-#else
-        if (!Preferences::instance()->iconsInMenusEnabled())
-            app->setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
 
         if (!firstTimeUser)
@@ -283,7 +277,7 @@ int main(int argc, char *argv[])
             app.reset(); // Destroy current application
             if (daemon(1, 0) == 0)
             {
-                app = std::make_unique<Application>(argc, argv);
+                app = std::make_unique<ApplicationImpl>(argc, argv);
                 if (app->isRunning())
                 {
                     // Another instance had time to start.

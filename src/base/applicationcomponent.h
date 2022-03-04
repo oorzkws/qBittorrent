@@ -1,8 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2016  Eugene Shalygin <eugene.shalygin@gmail.com>
- * Copyright (C) 2014  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
+ * Copyright (C) 2022  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -30,50 +28,17 @@
 
 #pragma once
 
-#include <optional>
+#include "application.h"
 
-#include <QString>
-#include <QStringList>
-
-#include "base/exceptions.h"
-#include "base/path.h"
-
-class QProcessEnvironment;
-
-struct QBtCommandLineParameters
+class ApplicationComponent
 {
-    bool showHelp;
-    bool relativeFastresumePaths;
-    bool skipChecking;
-    bool sequential;
-    bool firstLastPiecePriority;
-#if !defined(Q_OS_WIN) || defined(DISABLE_GUI)
-    bool showVersion;
-#endif
-#ifndef DISABLE_GUI
-    bool noSplash;
-#elif !defined(Q_OS_WIN)
-    bool shouldDaemonize;
-#endif
-    int webUiPort;
-    std::optional<bool> addPaused;
-    std::optional<bool> skipDialog;
-    QStringList torrents;
-    Path profileDir;
-    QString configurationName;
-    Path savePath;
-    QString category;
-    QString unknownParameter;
+    Q_DISABLE_COPY_MOVE(ApplicationComponent)
 
-    explicit QBtCommandLineParameters(const QProcessEnvironment &);
-    QStringList paramList() const;
-};
-
-class CommandLineParameterError : public RuntimeError
-{
 public:
-    using RuntimeError::RuntimeError;
-};
+    explicit ApplicationComponent(Application *app);
 
-QBtCommandLineParameters parseCommandLine(const QStringList &args);
-void displayUsage(const QString &prgName);
+    virtual Application *app() const;
+
+private:
+    Application *m_app;
+};

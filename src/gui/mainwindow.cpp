@@ -122,8 +122,9 @@ namespace
     }
 }
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(GUIApplication *app, QWidget *parent)
     : QMainWindow(parent)
+    , GUIApplicationComponent(app)
     , m_ui(new Ui::MainWindow)
     , m_storeExecutionLogEnabled(EXECUTIONLOG_SETTINGS_KEY("Enabled"))
     , m_storeDownloadTrackerFavicon(SETTINGS_KEY("DownloadTrackerFavicon"))
@@ -1784,7 +1785,7 @@ void MainWindow::on_actionOptions_triggered()
     if (m_options)
         m_options->activateWindow();
     else
-        m_options = new OptionsDialog(this);
+        m_options = new OptionsDialog(app(), this);
 }
 
 void MainWindow::on_actionTopToolBar_triggered()

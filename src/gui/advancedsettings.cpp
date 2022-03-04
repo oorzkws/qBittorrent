@@ -39,7 +39,7 @@
 #include "base/global.h"
 #include "base/preferences.h"
 #include "base/unicodestrings.h"
-#include "app/application.h"
+#include "app/applicationimpl.h"
 #include "gui/addnewtorrentdialog.h"
 #include "gui/mainwindow.h"
 
@@ -148,8 +148,9 @@ namespace
     };
 }
 
-AdvancedSettings::AdvancedSettings(QWidget *parent)
+AdvancedSettings::AdvancedSettings(GUIApplication *app, QWidget *parent)
     : QTableWidget(parent)
+    , GUIApplicationComponent(app)
 {
     // column
     setColumnCount(COL_COUNT);
@@ -200,7 +201,7 @@ void AdvancedSettings::saveAdvancedSettings()
     }
     session->setOSMemoryPriority(prio);
 
-    static_cast<Application *>(QCoreApplication::instance())->setMemoryWorkingSetLimit(m_spinBoxMemoryWorkingSetLimit.value());
+    app()->setMemoryWorkingSetLimit(m_spinBoxMemoryWorkingSetLimit.value());
 #endif
     // Async IO threads
     session->setAsyncIOThreads(m_spinBoxAsyncIOThreads.value());
@@ -292,7 +293,7 @@ void AdvancedSettings::saveAdvancedSettings()
     // Stop tracker timeout
     session->setStopTrackerTimeout(m_spinBoxStopTrackerTimeout.value());
     // Program notification
-    MainWindow *const mainWindow = static_cast<Application*>(QCoreApplication::instance())->mainWindow();
+    MainWindow *const mainWindow = app()->mainWindow();
     mainWindow->setNotificationsEnabled(m_checkBoxProgramNotifications.isChecked());
     mainWindow->setTorrentAddedNotificationsEnabled(m_checkBoxTorrentAddedNotifications.isChecked());
 #if (defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)) && defined(QT_DBUS_LIB)
@@ -449,7 +450,7 @@ void AdvancedSettings::loadAdvancedSettings()
     m_spinBoxMemoryWorkingSetLimit.setMinimum(1);
     m_spinBoxMemoryWorkingSetLimit.setMaximum(std::numeric_limits<int>::max());
     m_spinBoxMemoryWorkingSetLimit.setSuffix(tr(" MiB"));
-    m_spinBoxMemoryWorkingSetLimit.setValue(static_cast<Application *>(QCoreApplication::instance())->memoryWorkingSetLimit());
+    m_spinBoxMemoryWorkingSetLimit.setValue(app()->memoryWorkingSetLimit());
 
     addRow(MEMORY_WORKING_SET_LIMIT, (tr("Physical memory (RAM) usage limit")
         + ' ' + makeLink("https://wikipedia.org/wiki/Working_set", "(?)"))
@@ -694,7 +695,7 @@ void AdvancedSettings::loadAdvancedSettings()
            , &m_spinBoxStopTrackerTimeout);
 
     // Program notifications
-    const MainWindow *const mainWindow = static_cast<Application*>(QCoreApplication::instance())->mainWindow();
+    const MainWindow *const mainWindow = app()->mainWindow();
     m_checkBoxProgramNotifications.setChecked(mainWindow->isNotificationsEnabled());
     addRow(PROGRAM_NOTIFICATIONS, tr("Display notifications"), &m_checkBoxProgramNotifications);
     // Torrent added notifications

@@ -28,20 +28,12 @@ add_executable(qbt_app)
 
 target_sources(qbt_app PRIVATE
     # headers
-    application.h
-    applicationinstancemanager.h
-    cmdoptions.h
-    filelogger.h
-    qtlocalpeer/qtlocalpeer.h
+    applicationimpl.h
     upgrade.h
 
     # sources
-    application.cpp
-    applicationinstancemanager.cpp
-    cmdoptions.cpp
-    filelogger.cpp
+    applicationimpl.cpp
     main.cpp
-    qtlocalpeer/qtlocalpeer.cpp
     upgrade.cpp
 
     # resources

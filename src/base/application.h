@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015, 2019  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2015, 2019, 2022  Vladimir Golovnev <glassez@yandex.ru>
  * Copyright (C) 2006  Christophe Dumez
  *
  * This program is free software; you can redistribute it and/or
@@ -29,32 +29,14 @@
 
 #pragma once
 
-#include <QPointer>
-#include <QStringList>
+#include <QCoreApplication>
+#include <QObject>
 #include <QTranslator>
 
-#ifndef DISABLE_GUI
-#include <QApplication>
-using BaseApplication = QApplication;
-class MainWindow;
-
-#ifdef Q_OS_WIN
-class QSessionManager;
-#endif // Q_OS_WIN
-
-#else
-#include <QCoreApplication>
-using BaseApplication = QCoreApplication;
-#endif // DISABLE_GUI
-
-#include "base/path.h"
-#include "base/settingvalue.h"
-#include "base/types.h"
 #include "cmdoptions.h"
-
-#ifndef DISABLE_WEBUI
-class WebUI;
-#endif
+#include "pathfwd.h"
+#include "settingvalue.h"
+#include "types.h"
 
 class ApplicationInstanceManager;
 class FileLogger;
@@ -62,6 +44,7 @@ class FileLogger;
 namespace BitTorrent
 {
     class Torrent;
+    struct AddTorrentParams;
 }
 
 namespace RSS
@@ -70,24 +53,18 @@ namespace RSS
     class AutoDownloader;
 }
 
-class Application final : public BaseApplication
+#ifndef DISABLE_WEBUI
+class WebUI;
+#endif
+
+class Application : public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(Application)
 
 public:
     Application(int &argc, char **argv);
-    ~Application() override;
-
-    bool isRunning();
-    int exec(const QStringList &params);
-    bool sendParams(const QStringList &params);
-
-#ifndef DISABLE_GUI
-    QPointer<MainWindow> mainWindow();
-#endif
-
-    const QBtCommandLineParameters &commandLineArgs() const;
+    virtual ~Application();
 
 #ifdef Q_OS_WIN
     int memoryWorkingSetLimit() const;
@@ -110,50 +87,61 @@ public:
     int fileLoggerAgeType() const;
     void setFileLoggerAgeType(int value);
 
+    const CommandLineParameters &commandLineArgs() const;
+    bool isRunning();
+
+    int exec(const QStringList &params);
+
+    bool sendParams(const QStringList &params);
+
+    virtual addTorrent(const QString &torrentSource, const BitTorrent::AddTorrentParams &torrentParams);
+
 protected:
-#ifndef DISABLE_GUI
-#ifdef Q_OS_MACOS
-    bool event(QEvent *) override;
-#endif
-#endif
+    explicit Application(QCoreApplication *qtApp);
+
+    QCoreApplication *qtApp() const;
+
+    virtual void activate();
+    virtual bool initializeComponents();
+    virtual bool confirmAutoExit(ShutdownDialogAction action) const;
+    virtual bool processParam(QStringView param, BitTorrent::AddTorrentParams &torrentParams) const;
+
+protected slots:
+    virtual void cleanup();
 
 private slots:
     void processMessage(const QString &message);
     void torrentFinished(BitTorrent::Torrent *const torrent);
     void allTorrentsFinished();
-    void cleanup();
-#if (!defined(DISABLE_GUI) && defined(Q_OS_WIN))
-    void shutdownCleanup(QSessionManager &manager);
-#endif
 
 private:
-#ifdef Q_OS_WIN
-    void applyMemoryWorkingSetLimit();
-#endif
+    bool eventFilter(QObject *obj, QEvent *event) override;
     void initializeTranslation();
+    // As program parameters, we can get paths or urls.
+    // This function parse the parameters and call
+    // the right addTorrent function, considering
+    // the parameter type.
     void processParams(const QStringList &params);
     void runExternalProgram(const BitTorrent::Torrent *torrent) const;
     void sendNotificationEmail(const BitTorrent::Torrent *torrent);
-
-    ApplicationInstanceManager *m_instanceManager = nullptr;
-    bool m_running;
-    ShutdownDialogAction m_shutdownAct;
-    QBtCommandLineParameters m_commandLineArgs;
-
-#ifndef DISABLE_GUI
-    QPointer<MainWindow> m_window;
+#ifdef Q_OS_WIN
+    void applyMemoryWorkingSetLimit();
 #endif
 
+    QCoreApplication *m_qtApp = nullptr;
+    QTranslator m_qtTranslator;
+    QTranslator m_translator;
+
+    CommandLineParameters m_commandLineArgs;
+    QStringList m_paramsQueue;
+    ShutdownDialogAction m_shutdownAct = ShutdownDialogAction::Exit;
+
+    ApplicationInstanceManager *m_instanceManager = nullptr;
+    bool m_running = false;
+    FileLogger *m_fileLogger = nullptr;
 #ifndef DISABLE_WEBUI
     WebUI *m_webui = nullptr;
 #endif
-
-    // FileLog
-    QPointer<FileLogger> m_fileLogger;
-
-    QTranslator m_qtTranslator;
-    QTranslator m_translator;
-    QStringList m_paramsQueue;
 
 #ifdef Q_OS_WIN
     SettingValue<int> m_storeMemoryWorkingSetLimit;
