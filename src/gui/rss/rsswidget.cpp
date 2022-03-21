@@ -125,6 +125,15 @@ RSSWidget::RSSWidget(QWidget *parent)
             , this, &RSSWidget::handleSessionProcessingStateChanged);
     connect(RSS::Session::instance()->rootFolder(), &RSS::Folder::unreadCountChanged
             , this, &RSSWidget::handleUnreadCountChanged);
+
+    if (!BitTorrent::Session::instance()->isRestored())
+    {
+        m_ui->actionDownloadTorrent->setEnabled(false);
+        connect(BitTorrent::Session::instance(), &BitTorrent::Session::restored, this, [this]()
+        {
+            m_ui->actionDownloadTorrent->setEnabled(true);
+        });
+    }
 }
 
 RSSWidget::~RSSWidget()
@@ -357,6 +366,14 @@ void RSSWidget::refreshAllFeeds()
 
 void RSSWidget::downloadSelectedTorrents()
 {
+    if (!BitTorrent::Session::instance()->isRestored())
+    {
+        QMessageBox::warning(this, tr("BitTorrent Session isn't restored")
+                             , tr("BitTorrent Session isn't restored yet. Adding new torrents is impossible. Please wait...")
+                             , QMessageBox::Ok);
+        return;
+    }
+
     for (QListWidgetItem *item : asConst(m_articleListWidget->selectedItems()))
     {
         auto article = item->data(Qt::UserRole).value<RSS::Article *>();

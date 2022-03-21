@@ -248,7 +248,16 @@ void TorrentCreatorDialog::handleCreationSuccess(const Path &path, const Path &b
         }
         params.useAutoTMM = false;  // otherwise if it is on by default, it will overwrite `savePath` to the default save path
 
-        BitTorrent::Session::instance()->addTorrent(result.value(), params);
+        if (BitTorrent::Session::instance()->isRestored())
+        {
+            BitTorrent::Session::instance()->addTorrent(result.value(), params);
+        }
+        else
+        {
+            QMessageBox::warning(this, tr("BitTorrent Session isn't restored")
+                                 , tr("BitTorrent Session isn't restored yet. Adding new torrents is impossible. Please wait...")
+                                 , QMessageBox::Ok);
+        }
     }
     QMessageBox::information(this, tr("Torrent creator")
         , u"%1\n%2"_qs.arg(tr("Torrent created:"), path.toString()));

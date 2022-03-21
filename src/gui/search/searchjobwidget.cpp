@@ -35,6 +35,7 @@
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QMessageBox>
 #include <QPalette>
 #include <QStandardItemModel>
 #include <QUrl>
@@ -168,6 +169,14 @@ SearchJobWidget::~SearchJobWidget()
 
 void SearchJobWidget::onItemDoubleClicked(const QModelIndex &index)
 {
+    if (!BitTorrent::Session::instance()->isRestored())
+    {
+        QMessageBox::warning(this, tr("BitTorrent Session isn't restored")
+                             , tr("BitTorrent Session isn't restored yet. Adding new torrents is impossible. Please wait...")
+                             , QMessageBox::Ok);
+        return;
+    }
+
     downloadTorrent(index);
 }
 
@@ -208,7 +217,15 @@ void SearchJobWidget::cancelSearch()
 
 void SearchJobWidget::downloadTorrents(const AddTorrentOption option)
 {
-    const QModelIndexList rows {m_ui->resultsBrowser->selectionModel()->selectedRows()};
+    if (!BitTorrent::Session::instance()->isRestored())
+    {
+        QMessageBox::warning(this, tr("BitTorrent Session isn't restored")
+                             , tr("BitTorrent Session isn't restored yet. Adding new torrents is impossible. Please wait...")
+                             , QMessageBox::Ok);
+        return;
+    }
+
+    const QModelIndexList rows = m_ui->resultsBrowser->selectionModel()->selectedRows();
     for (const QModelIndex &rowIndex : rows)
         downloadTorrent(rowIndex, option);
 }
@@ -390,10 +407,16 @@ void SearchJobWidget::contextMenuEvent(QContextMenuEvent *event)
     auto *menu = new QMenu(this);
     menu->setAttribute(Qt::WA_DeleteOnClose);
 
-    menu->addAction(UIThemeManager::instance()->getIcon(u"download"_qs), tr("Open download window")
-        , this, [this]() { downloadTorrents(AddTorrentOption::ShowDialog); });
-    menu->addAction(UIThemeManager::instance()->getIcon(u"download"_qs), tr("Download")
-        , this, [this]() { downloadTorrents(AddTorrentOption::SkipDialog); });
+    QAction *openDownloadWindowAction = menu->addAction(UIThemeManager::instance()->getIcon(u"download"_qs)
+        , tr("Open download window"), this, [this]() { downloadTorrents(AddTorrentOption::ShowDialog); });
+    QAction *downloadAction = menu->addAction(UIThemeManager::instance()->getIcon(u"download"_qs)
+        , tr("Download"), this, [this]() { downloadTorrents(AddTorrentOption::SkipDialog); });
+    if (!BitTorrent::Session::instance()->isRestored())
+    {
+        openDownloadWindowAction->setEnabled(false);
+        downloadAction->setEnabled(false);
+    }
+
     menu->addSeparator();
     menu->addAction(UIThemeManager::instance()->getIcon(u"application-x-mswinurl"_qs), tr("Open description page")
         , this, &SearchJobWidget::openTorrentPages);

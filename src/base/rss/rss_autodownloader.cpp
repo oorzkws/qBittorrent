@@ -138,8 +138,20 @@ AutoDownloader::AutoDownloader()
     m_processingTimer->setSingleShot(true);
     connect(m_processingTimer, &QTimer::timeout, this, &AutoDownloader::process);
 
-    if (isProcessingEnabled())
-        startProcessing();
+    const auto *btSession = BitTorrent::Session::instance();
+    if (btSession->isRestored())
+    {
+        if (isProcessingEnabled())
+            startProcessing();
+    }
+    else
+    {
+        connect(btSession, &BitTorrent::Session::restored, this, [this]()
+        {
+            if (isProcessingEnabled())
+                startProcessing();
+        });
+    }
 }
 
 AutoDownloader::~AutoDownloader()
@@ -501,7 +513,8 @@ void AutoDownloader::setProcessingEnabled(const bool enabled)
         m_storeProcessingEnabled = enabled;
         if (enabled)
         {
-            startProcessing();
+            if (BitTorrent::Session::instance()->isRestored())
+                startProcessing();
         }
         else
         {

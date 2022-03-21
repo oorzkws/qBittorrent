@@ -210,6 +210,16 @@ MainWindow::MainWindow(QWidget *parent)
     connect(BitTorrent::Session::instance(), &BitTorrent::Session::downloadFromUrlFailed, this, &MainWindow::handleDownloadFromUrlFailure);
     connect(BitTorrent::Session::instance(), &BitTorrent::Session::speedLimitModeChanged, this, &MainWindow::updateAltSpeedsBtn);
     connect(BitTorrent::Session::instance(), &BitTorrent::Session::recursiveTorrentDownloadPossible, this, &MainWindow::askRecursiveTorrentDownloadConfirmation);
+    if (!BitTorrent::Session::instance()->isRestored())
+    {
+        m_ui->actionOpen->setEnabled(false);
+        m_ui->actionDownloadFromURL->setEnabled(false);
+        connect(BitTorrent::Session::instance(), &BitTorrent::Session::restored, this, [this]()
+        {
+            m_ui->actionOpen->setEnabled(true);
+            m_ui->actionDownloadFromURL->setEnabled(true);
+        });
+    }
 
     qDebug("create tabWidget");
     m_tabs = new HidableTabWidget(this);
@@ -1179,12 +1189,20 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (event->matches(QKeySequence::Paste))
     {
-        const QMimeData *mimeData {QGuiApplication::clipboard()->mimeData()};
+        const QMimeData *mimeData = QGuiApplication::clipboard()->mimeData();
 
         if (mimeData->hasText())
         {
-            const bool useTorrentAdditionDialog {AddNewTorrentDialog::isEnabled()};
-            const QStringList lines {mimeData->text().split(u'\n', Qt::SkipEmptyParts)};
+            if (!BitTorrent::Session::instance()->isRestored())
+            {
+                QMessageBox::warning(this, tr("BitTorrent Session isn't restored")
+                                     , tr("BitTorrent Session isn't restored yet. Adding new torrents is impossible. Please wait...")
+                                     , QMessageBox::Ok);
+                return;
+            }
+
+            const bool useTorrentAdditionDialog = AddNewTorrentDialog::isEnabled();
+            const QStringList lines = mimeData->text().split(u'\n', Qt::SkipEmptyParts);
 
             for (QString line : lines)
             {
@@ -1410,8 +1428,12 @@ void MainWindow::dropEvent(QDropEvent *event)
 // Decode if we accept drag 'n drop or not
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
+    if (!BitTorrent::Session::instance()->isRestored())
+        return;
+
     for (const QString &mime : asConst(event->mimeData()->formats()))
         qDebug("mimeData: %s", mime.toLocal8Bit().data());
+
     if (event->mimeData()->hasFormat(u"text/plain"_qs) || event->mimeData()->hasFormat(u"text/uri-list"_qs))
         event->acceptProposedAction();
 }
