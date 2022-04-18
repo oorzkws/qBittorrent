@@ -33,6 +33,7 @@
 #include <QString>
 
 #include "base/path.h"
+#include "base/shareddatapointer.h"
 #include "base/tagset.h"
 #include "torrent.h"
 #include "torrentcontentlayout.h"
@@ -41,7 +42,7 @@ namespace BitTorrent
 {
     struct LoadTorrentParams
     {
-        lt::add_torrent_params ltAddTorrentParams {};
+        SharedDataPointer<lt::add_torrent_params> ltAddTorrentParams = new lt::add_torrent_params {};
 
         QString name;
         QString category;
