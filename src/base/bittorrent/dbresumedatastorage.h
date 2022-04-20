@@ -45,8 +45,8 @@ namespace BitTorrent
         ~DBResumeDataStorage() override;
 
         QVector<TorrentID> registeredTorrents() const override;
-        std::optional<LoadTorrentParams> load(const TorrentID &id) const override;
-        void store(const TorrentID &id, const LoadTorrentParams &resumeData) const override;
+        std::optional<TorrentData> load(const TorrentID &id) const override;
+        void store(const TorrentID &id, const TorrentData &resumeData) const override;
         void remove(const TorrentID &id) const override;
         void storeQueue(const QVector<TorrentID> &queue) const override;
 

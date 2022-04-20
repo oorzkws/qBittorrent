@@ -15,7 +15,6 @@ HEADERS += \
     $$PWD/bittorrent/filesearcher.h \
     $$PWD/bittorrent/filterparserthread.h \
     $$PWD/bittorrent/infohash.h \
-    $$PWD/bittorrent/loadtorrentparams.h \
     $$PWD/bittorrent/ltqbitarray.h \
     $$PWD/bittorrent/ltqhash.h \
     $$PWD/bittorrent/lttypecast.h \
@@ -33,6 +32,7 @@ HEADERS += \
     $$PWD/bittorrent/torrent.h \
     $$PWD/bittorrent/torrentcontentlayout.h \
     $$PWD/bittorrent/torrentcreatorthread.h \
+    $$PWD/bittorrent/torrentdata.h \
     $$PWD/bittorrent/torrentimpl.h \
     $$PWD/bittorrent/torrentinfo.h \
     $$PWD/bittorrent/tracker.h \
@@ -125,6 +125,7 @@ SOURCES += \
     $$PWD/bittorrent/statistics.cpp \
     $$PWD/bittorrent/torrent.cpp \
     $$PWD/bittorrent/torrentcreatorthread.cpp \
+    $$PWD/bittorrent/torrentdata.cpp \
     $$PWD/bittorrent/torrentimpl.cpp \
     $$PWD/bittorrent/torrentinfo.cpp \
     $$PWD/bittorrent/tracker.cpp \

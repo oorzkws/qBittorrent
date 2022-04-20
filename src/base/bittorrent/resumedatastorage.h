@@ -36,7 +36,7 @@
 namespace BitTorrent
 {
     class TorrentID;
-    struct LoadTorrentParams;
+    struct TorrentData;
 
     class ResumeDataStorage : public QObject
     {
@@ -47,8 +47,8 @@ namespace BitTorrent
         using QObject::QObject;
 
         virtual QVector<TorrentID> registeredTorrents() const = 0;
-        virtual std::optional<LoadTorrentParams> load(const TorrentID &id) const = 0;
-        virtual void store(const TorrentID &id, const LoadTorrentParams &resumeData) const = 0;
+        virtual std::optional<TorrentData> load(const TorrentID &id) const = 0;
+        virtual void store(const TorrentID &id, const TorrentData &resumeData) const = 0;
         virtual void remove(const TorrentID &id) const = 0;
         virtual void storeQueue(const QVector<TorrentID> &queue) const = 0;
     };

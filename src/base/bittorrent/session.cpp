@@ -97,12 +97,12 @@
 #include "downloadpriority.h"
 #include "filesearcher.h"
 #include "filterparserthread.h"
-#include "loadtorrentparams.h"
 #include "lttypecast.h"
 #include "magneturi.h"
 #include "nativesessionextension.h"
 #include "portforwarderimpl.h"
 #include "statistics.h"
+#include "torrentdata.h"
 #include "torrentimpl.h"
 #include "tracker.h"
 
@@ -1810,7 +1810,7 @@ void Session::fileSearchFinished(const TorrentID &id, const Path &savePath, cons
     const auto loadingTorrentsIter = m_loadingTorrents.find(id);
     if (loadingTorrentsIter != m_loadingTorrents.end())
     {
-        LoadTorrentParams &params = loadingTorrentsIter.value();
+        TorrentData &params = loadingTorrentsIter.value();
         lt::add_torrent_params &p = params.ltAddTorrentParams;
 
         p.save_path = savePath.toString().toStdString();
@@ -2137,9 +2137,9 @@ bool Session::addTorrent(const TorrentInfo &torrentInfo, const AddTorrentParams 
     return addTorrent_impl(torrentInfo, params);
 }
 
-LoadTorrentParams Session::initLoadTorrentParams(const AddTorrentParams &addTorrentParams)
+TorrentData Session::initLoadTorrentParams(const AddTorrentParams &addTorrentParams)
 {
-    LoadTorrentParams loadTorrentParams;
+    TorrentData loadTorrentParams;
 
     loadTorrentParams.name = addTorrentParams.name;
     loadTorrentParams.useAutoTMM = addTorrentParams.useAutoTMM.value_or(!isAutoTMMDisabledByDefault());
@@ -2239,7 +2239,7 @@ bool Session::addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source
         return true;
     }
 
-    LoadTorrentParams loadTorrentParams = initLoadTorrentParams(addTorrentParams);
+    TorrentData loadTorrentParams = initLoadTorrentParams(addTorrentParams);
     lt::add_torrent_params &p = loadTorrentParams.ltAddTorrentParams;
 
     bool isFindingIncompleteFiles = false;
@@ -4200,7 +4200,7 @@ void Session::handleTorrentFinished(TorrentImpl *const torrent)
         emit allTorrentsFinished();
 }
 
-void Session::handleTorrentResumeDataReady(TorrentImpl *const torrent, const LoadTorrentParams &data)
+void Session::handleTorrentResumeDataReady(TorrentImpl *const torrent, const TorrentData &data)
 {
     --m_numResumeData;
 
@@ -4539,14 +4539,14 @@ void Session::startUpTorrents()
             continue;
 #endif
 
-        const std::optional<LoadTorrentParams> loadResumeDataResult = startupStorage->load(torrentID);
+        const std::optional<TorrentData> loadResumeDataResult = startupStorage->load(torrentID);
         if (!loadResumeDataResult)
         {
             LogMsg(tr("Failed to resume torrent. Torrent: \"%1\"").arg(torrentID.toString()), Log::CRITICAL);
             continue;
         }
 
-        LoadTorrentParams resumeData = *loadResumeDataResult;
+        TorrentData resumeData = *loadResumeDataResult;
         bool needStore = false;
 
 #ifdef QBT_USES_LIBTORRENT2
@@ -4563,7 +4563,7 @@ void Session::startUpTorrents()
                 // if we don't have metadata, try to find it in alternative "resume data"
                 if (!resumeData.ltAddTorrentParams.ti)
                 {
-                    const std::optional<LoadTorrentParams> loadAltResumeDataResult = startupStorage->load(torrentIDv1);
+                    const std::optional<TorrentData> loadAltResumeDataResult = startupStorage->load(torrentIDv1);
                     if (loadAltResumeDataResult)
                         resumeData.ltAddTorrentParams.ti = loadAltResumeDataResult->ltAddTorrentParams.ti;
                 }
@@ -4583,7 +4583,7 @@ void Session::startUpTorrents()
             {
                 skippedIDs.insert(torrentID);
 
-                const std::optional<LoadTorrentParams> loadPreferredResumeDataResult = startupStorage->load(torrentID);
+                const std::optional<TorrentData> loadPreferredResumeDataResult = startupStorage->load(torrentID);
                 if (loadPreferredResumeDataResult)
                 {
                     std::shared_ptr<lt::torrent_info> ti = resumeData.ltAddTorrentParams.ti;
@@ -4892,7 +4892,7 @@ void Session::createTorrent(const lt::torrent_handle &nativeHandle)
 
     Q_ASSERT(m_loadingTorrents.contains(torrentID));
 
-    const LoadTorrentParams params = m_loadingTorrents.take(torrentID);
+    const TorrentData params = m_loadingTorrents.take(torrentID);
 
     auto *const torrent = new TorrentImpl(this, m_nativeSession, nativeHandle, params);
     m_torrents.insert(torrent->id(), torrent);

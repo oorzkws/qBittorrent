@@ -96,7 +96,7 @@ namespace BitTorrent
     class Torrent;
     class TorrentImpl;
     class Tracker;
-    struct LoadTorrentParams;
+    struct TorrentData;
 
     enum class MoveStorageMode;
 
@@ -512,7 +512,7 @@ namespace BitTorrent
         void handleTorrentTrackersChanged(TorrentImpl *const torrent);
         void handleTorrentUrlSeedsAdded(TorrentImpl *const torrent, const QVector<QUrl> &newUrlSeeds);
         void handleTorrentUrlSeedsRemoved(TorrentImpl *const torrent, const QVector<QUrl> &urlSeeds);
-        void handleTorrentResumeDataReady(TorrentImpl *const torrent, const LoadTorrentParams &data);
+        void handleTorrentResumeDataReady(TorrentImpl *const torrent, const TorrentData &data);
 
         bool addMoveTorrentStorageJob(TorrentImpl *torrent, const Path &newPath, MoveStorageMode mode);
 
@@ -621,7 +621,7 @@ namespace BitTorrent
 #endif
         void processTrackerStatuses();
 
-        LoadTorrentParams initLoadTorrentParams(const AddTorrentParams &addTorrentParams);
+        TorrentData initLoadTorrentParams(const AddTorrentParams &addTorrentParams);
         bool addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source, const AddTorrentParams &addTorrentParams);
 
         void updateSeedingLimitTimer();
@@ -804,7 +804,7 @@ namespace BitTorrent
         QSet<TorrentID> m_downloadedMetadata;
 
         QHash<TorrentID, TorrentImpl *> m_torrents;
-        QHash<TorrentID, LoadTorrentParams> m_loadingTorrents;
+        QHash<TorrentID, TorrentData> m_loadingTorrents;
         QHash<QString, AddTorrentParams> m_downloadedTorrents;
         QHash<TorrentID, RemovingTorrentData> m_removingTorrents;
         QSet<TorrentID> m_needSaveResumeDataTorrents;

@@ -55,7 +55,7 @@
 #include "base/utils/fs.h"
 #include "base/utils/string.h"
 #include "infohash.h"
-#include "loadtorrentparams.h"
+#include "torrentdata.h"
 
 namespace
 {
@@ -180,7 +180,7 @@ namespace BitTorrent
         void openDatabase() const;
         void closeDatabase() const;
 
-        void store(const TorrentID &id, const LoadTorrentParams &resumeData) const;
+        void store(const TorrentID &id, const TorrentData &resumeData) const;
         void remove(const TorrentID &id) const;
         void storeQueue(const QVector<TorrentID> &queue) const;
 
@@ -262,7 +262,7 @@ QVector<BitTorrent::TorrentID> BitTorrent::DBResumeDataStorage::registeredTorren
     return registeredTorrents;
 }
 
-std::optional<BitTorrent::LoadTorrentParams> BitTorrent::DBResumeDataStorage::load(const TorrentID &id) const
+std::optional<BitTorrent::TorrentData> BitTorrent::DBResumeDataStorage::load(const TorrentID &id) const
 {
     const QString selectTorrentStatement = u"SELECT * FROM %1 WHERE %2 = %3;"_qs
         .arg(quoted(DB_TABLE_TORRENTS), quoted(DB_COLUMN_TORRENT_ID.name), DB_COLUMN_TORRENT_ID.placeholder);
@@ -288,7 +288,7 @@ std::optional<BitTorrent::LoadTorrentParams> BitTorrent::DBResumeDataStorage::lo
         return std::nullopt;
     }
 
-    LoadTorrentParams resumeData;
+    TorrentData resumeData;
     resumeData.restored = true;
     resumeData.name = query.value(DB_COLUMN_NAME.name).toString();
     resumeData.category = query.value(DB_COLUMN_CATEGORY.name).toString();
@@ -335,7 +335,7 @@ std::optional<BitTorrent::LoadTorrentParams> BitTorrent::DBResumeDataStorage::lo
     return resumeData;
 }
 
-void BitTorrent::DBResumeDataStorage::store(const TorrentID &id, const LoadTorrentParams &resumeData) const
+void BitTorrent::DBResumeDataStorage::store(const TorrentID &id, const TorrentData &resumeData) const
 {
     QMetaObject::invokeMethod(m_asyncWorker, [this, id, resumeData]()
     {
@@ -504,7 +504,7 @@ void BitTorrent::DBResumeDataStorage::Worker::closeDatabase() const
     QSqlDatabase::removeDatabase(m_connectionName);
 }
 
-void BitTorrent::DBResumeDataStorage::Worker::store(const TorrentID &id, const LoadTorrentParams &resumeData) const
+void BitTorrent::DBResumeDataStorage::Worker::store(const TorrentID &id, const TorrentData &resumeData) const
 {
     // We need to adjust native libtorrent resume data
     lt::add_torrent_params p = resumeData.ltAddTorrentParams;

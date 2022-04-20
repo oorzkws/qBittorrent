@@ -52,12 +52,12 @@
 #include "speedmonitor.h"
 #include "torrent.h"
 #include "torrentcontentlayout.h"
+#include "torrentdata.h"
 #include "torrentinfo.h"
 
 namespace BitTorrent
 {
     class Session;
-    struct LoadTorrentParams;
 
     enum class MoveStorageMode
     {
@@ -84,7 +84,7 @@ namespace BitTorrent
 
     public:
         TorrentImpl(Session *session, lt::session *nativeSession
-                          , const lt::torrent_handle &nativeHandle, const LoadTorrentParams &params);
+                          , const lt::torrent_handle &nativeHandle, const TorrentData &data);
         ~TorrentImpl() override;
 
         bool isValid() const;
@@ -303,26 +303,13 @@ namespace BitTorrent
         QHash<QString, QMap<lt::tcp::endpoint, int>> m_trackerPeerCounts;
         FileErrorInfo m_lastFileError;
 
-        // Persistent data
-        QString m_name;
-        Path m_savePath;
-        Path m_downloadPath;
-        QString m_category;
-        TagSet m_tags;
-        qreal m_ratioLimit;
-        int m_seedingTimeLimit;
-        TorrentOperatingMode m_operatingMode;
-        TorrentContentLayout m_contentLayout;
-        bool m_hasSeedStatus;
         bool m_fastresumeDataRejected = false;
         bool m_hasMissingFiles = false;
-        bool m_hasFirstLastPiecePriority = false;
-        bool m_useAutoTMM;
-        bool m_isStopped;
 
         bool m_unchecked = false;
 
-        lt::add_torrent_params m_ltAddTorrentParams;
+        // Persistent data
+        TorrentData m_data;
 
         mutable QBitArray m_pieces;
     };

@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015, 2018  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2021-2022  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -28,41 +28,36 @@
 
 #pragma once
 
-#include <QDir>
-#include <QVector>
+#include <libtorrent/add_torrent_params.hpp>
+
+#include <QString>
 
 #include "base/path.h"
-#include "resumedatastorage.h"
-
-class QByteArray;
-class QThread;
+#include "base/tagset.h"
+#include "torrent.h"
+#include "torrentcontentlayout.h"
 
 namespace BitTorrent
 {
-    class BencodeResumeDataStorage final : public ResumeDataStorage
+    struct TorrentData
     {
-        Q_OBJECT
-        Q_DISABLE_COPY_MOVE(BencodeResumeDataStorage)
+        lt::add_torrent_params ltAddTorrentParams {};
 
-    public:
-        explicit BencodeResumeDataStorage(const Path &path, QObject *parent = nullptr);
-        ~BencodeResumeDataStorage() override;
+        QString name;
+        QString category;
+        TagSet tags;
+        Path savePath;
+        Path downloadPath;
+        TorrentContentLayout contentLayout = TorrentContentLayout::Original;
+        TorrentOperatingMode operatingMode = TorrentOperatingMode::AutoManaged;
+        bool useAutoTMM = false;
+        bool firstLastPiecePriority = false;
+        bool hasSeedStatus = false;
+        bool stopped = false;
 
-        QVector<TorrentID> registeredTorrents() const override;
-        std::optional<TorrentData> load(const TorrentID &id) const override;
-        void store(const TorrentID &id, const TorrentData &resumeData) const override;
-        void remove(const TorrentID &id) const override;
-        void storeQueue(const QVector<TorrentID> &queue) const override;
+        qreal ratioLimit = Torrent::USE_GLOBAL_RATIO;
+        int seedingTimeLimit = Torrent::USE_GLOBAL_SEEDING_TIME;
 
-    private:
-        void loadQueue(const Path &queueFilename);
-        std::optional<TorrentData> loadTorrentResumeData(const QByteArray &data, const QByteArray &metadata) const;
-
-        const Path m_resumeDataPath;
-        QVector<TorrentID> m_registeredTorrents;
-        QThread *m_ioThread = nullptr;
-
-        class Worker;
-        Worker *m_asyncWorker = nullptr;
+        bool restored = false;  // is existing torrent job?
     };
 }

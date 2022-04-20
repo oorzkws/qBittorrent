@@ -49,7 +49,7 @@
 #include "base/utils/io.h"
 #include "base/utils/string.h"
 #include "infohash.h"
-#include "loadtorrentparams.h"
+#include "torrentdata.h"
 
 namespace BitTorrent
 {
@@ -60,7 +60,7 @@ namespace BitTorrent
     public:
         explicit Worker(const Path &resumeDataDir);
 
-        void store(const TorrentID &id, const LoadTorrentParams &resumeData) const;
+        void store(const TorrentID &id, const TorrentData &resumeData) const;
         void remove(const TorrentID &id) const;
         void storeQueue(const QVector<TorrentID> &queue) const;
 
@@ -134,7 +134,7 @@ QVector<BitTorrent::TorrentID> BitTorrent::BencodeResumeDataStorage::registeredT
     return m_registeredTorrents;
 }
 
-std::optional<BitTorrent::LoadTorrentParams> BitTorrent::BencodeResumeDataStorage::load(const TorrentID &id) const
+std::optional<BitTorrent::TorrentData> BitTorrent::BencodeResumeDataStorage::load(const TorrentID &id) const
 {
     const QString idString = id.toString();
     const Path fastresumePath = m_resumeDataPath / Path(idString + u".fastresume");
@@ -160,7 +160,7 @@ std::optional<BitTorrent::LoadTorrentParams> BitTorrent::BencodeResumeDataStorag
     return loadTorrentResumeData(data, metadata);
 }
 
-std::optional<BitTorrent::LoadTorrentParams> BitTorrent::BencodeResumeDataStorage::loadTorrentResumeData(
+std::optional<BitTorrent::TorrentData> BitTorrent::BencodeResumeDataStorage::loadTorrentResumeData(
         const QByteArray &data, const QByteArray &metadata) const
 {
     const QByteArray allData = ((metadata.isEmpty() || data.isEmpty())
@@ -171,7 +171,7 @@ std::optional<BitTorrent::LoadTorrentParams> BitTorrent::BencodeResumeDataStorag
     if (ec || (root.type() != lt::bdecode_node::dict_t))
         return std::nullopt;
 
-    LoadTorrentParams torrentParams;
+    TorrentData torrentParams;
     torrentParams.restored = true;
     torrentParams.category = fromLTString(root.dict_find_string_value("qBt-category"));
     torrentParams.name = fromLTString(root.dict_find_string_value("qBt-name"));
@@ -252,7 +252,7 @@ std::optional<BitTorrent::LoadTorrentParams> BitTorrent::BencodeResumeDataStorag
     return torrentParams;
 }
 
-void BitTorrent::BencodeResumeDataStorage::store(const TorrentID &id, const LoadTorrentParams &resumeData) const
+void BitTorrent::BencodeResumeDataStorage::store(const TorrentID &id, const TorrentData &resumeData) const
 {
     QMetaObject::invokeMethod(m_asyncWorker, [this, id, resumeData]()
     {
@@ -314,7 +314,7 @@ BitTorrent::BencodeResumeDataStorage::Worker::Worker(const Path &resumeDataDir)
 {
 }
 
-void BitTorrent::BencodeResumeDataStorage::Worker::store(const TorrentID &id, const LoadTorrentParams &resumeData) const
+void BitTorrent::BencodeResumeDataStorage::Worker::store(const TorrentID &id, const TorrentData &resumeData) const
 {
     // We need to adjust native libtorrent resume data
     lt::add_torrent_params p = resumeData.ltAddTorrentParams;

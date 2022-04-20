@@ -16,7 +16,6 @@ add_library(qbt_base STATIC
     bittorrent/filesearcher.h
     bittorrent/filterparserthread.h
     bittorrent/infohash.h
-    bittorrent/loadtorrentparams.h
     bittorrent/ltqbitarray.h
     bittorrent/ltqhash.h
     bittorrent/lttypecast.h
@@ -34,6 +33,7 @@ add_library(qbt_base STATIC
     bittorrent/torrent.h
     bittorrent/torrentcontentlayout.h
     bittorrent/torrentcreatorthread.h
+    bittorrent/torrentdata.h
     bittorrent/torrentimpl.h
     bittorrent/torrentinfo.h
     bittorrent/tracker.h
@@ -125,6 +125,7 @@ add_library(qbt_base STATIC
     bittorrent/statistics.cpp
     bittorrent/torrent.cpp
     bittorrent/torrentcreatorthread.cpp
+    bittorrent/torrentdata.cpp
     bittorrent/torrentimpl.cpp
     bittorrent/torrentinfo.cpp
     bittorrent/tracker.cpp
