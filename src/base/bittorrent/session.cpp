@@ -1810,9 +1810,7 @@ void Session::fileSearchFinished(const TorrentID &id, const Path &savePath, cons
     const auto loadingTorrentsIter = m_loadingTorrents.find(id);
     if (loadingTorrentsIter != m_loadingTorrents.end())
     {
-        LoadTorrentParams params = loadingTorrentsIter.value();
-        m_loadingTorrents.erase(loadingTorrentsIter);
-
+        LoadTorrentParams &params = loadingTorrentsIter.value();
         lt::add_torrent_params &p = params.ltAddTorrentParams;
 
         p.save_path = savePath.toString().toStdString();
@@ -1821,7 +1819,7 @@ void Session::fileSearchFinished(const TorrentID &id, const Path &savePath, cons
         for (int i = 0; i < fileNames.size(); ++i)
             p.renamed_files[nativeIndexes[i]] = fileNames[i].toString().toStdString();
 
-        loadTorrent(params);
+        m_nativeSession->async_add_torrent(p);
     }
 }
 
@@ -2361,37 +2359,19 @@ bool Session::addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source
     else
         p.flags |= lt::torrent_flags::auto_managed;
 
-    p.added_time = std::time(nullptr);
-
-    if (!isFindingIncompleteFiles)
-        return loadTorrent(loadTorrentParams);
-
-    m_loadingTorrents.insert(id, loadTorrentParams);
-    return true;
-}
-
-// Add a torrent to the BitTorrent session
-bool Session::loadTorrent(LoadTorrentParams params)
-{
-    lt::add_torrent_params &p = params.ltAddTorrentParams;
-
-#ifndef QBT_USES_LIBTORRENT2
-    p.storage = customStorageConstructor;
-#endif
     // Limits
     p.max_connections = maxConnectionsPerTorrent();
     p.max_uploads = maxUploadsPerTorrent();
 
-    const bool hasMetadata = (p.ti && p.ti->is_valid());
-#ifdef QBT_USES_LIBTORRENT2
-    const auto id = TorrentID::fromInfoHash(hasMetadata ? p.ti->info_hashes() : p.info_hashes);
-#else
-    const auto id = TorrentID::fromInfoHash(hasMetadata ? p.ti->info_hash() : p.info_hash);
-#endif
-    m_loadingTorrents.insert(id, params);
+    p.added_time = std::time(nullptr);
 
-    // Adding torrent to BitTorrent session
-    m_nativeSession->async_add_torrent(p);
+#ifndef QBT_USES_LIBTORRENT2
+    p.storage = customStorageConstructor;
+#endif
+
+    m_loadingTorrents.insert(id, loadTorrentParams);
+    if (!isFindingIncompleteFiles)
+        m_nativeSession->async_add_torrent(p);
 
     return true;
 }
@@ -4692,9 +4672,13 @@ void Session::startUpTorrents()
             }
         }
 
+#ifndef QBT_USES_LIBTORRENT2
+        resumeData.ltAddTorrentParams.storage = customStorageConstructor;
+#endif
+
         qDebug() << "Starting up torrent" << torrentID.toString() << "...";
-        if (!loadTorrent(resumeData))
-            LogMsg(tr("Failed to resume torrent. Torrent: \"%1\"").arg(torrentID.toString()), Log::CRITICAL);
+        m_loadingTorrents.insert(torrentID, resumeData);
+        m_nativeSession->async_add_torrent(resumeData.ltAddTorrentParams);
 
         // process add torrent messages before message queue overflow
         if ((resumedTorrentsCount % 100) == 0) readAlerts();

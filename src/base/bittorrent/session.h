@@ -621,7 +621,6 @@ namespace BitTorrent
 #endif
         void processTrackerStatuses();
 
-        bool loadTorrent(LoadTorrentParams params);
         LoadTorrentParams initLoadTorrentParams(const AddTorrentParams &addTorrentParams);
         bool addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source, const AddTorrentParams &addTorrentParams);
 
