@@ -67,6 +67,8 @@ namespace RSS
 }
 
 #ifndef DISABLE_GUI
+class QProgressDialog;
+
 class DesktopIntegration;
 class MainWindow;
 
@@ -166,6 +168,7 @@ private:
 #endif
 
 #ifndef DISABLE_GUI
+    QProgressDialog *createStartupProgressDialog();
 #ifdef Q_OS_MACOS
     bool event(QEvent *) override;
 #endif
